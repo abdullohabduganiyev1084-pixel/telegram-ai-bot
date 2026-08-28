@@ -479,15 +479,13 @@ const ADMIN_HTML = `<!DOCTYPE html>
           data.tracks.forEach(t => {
             const row = document.createElement('div');
             row.className = 'bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between text-xs transition-all hover:border-indigo-500/50 mt-2';
-            row.innerHTML = ' \
-              <div class="flex-1 truncate pr-2"> \
-                <p class="font-bold text-slate-100 truncate">' + t.title.replace(/'/g, "&apos;") + '</p> \
-                <p class="text-[10px] text-slate-400 truncate">' + t.artist.replace(/'/g, "&apos;") + '</p> \
-              </div> \
-              <button onclick="playWebMusic(\'' + t.audioUrl.replace(/'/g, "\\'") + '\', \'' + t.title.replace(/'/g, "\\'") + '\')" class="bg-indigo-600/80 text-white rounded-lg p-2 flex items-center justify-center hover:bg-indigo-500 transition-colors"> \
-                <i class="fas fa-play text-[10px]"></i> \
-              </button> \
-            ';
+            row.innerHTML = '<div class="flex-1 truncate pr-2">' +
+              '<p class="font-bold text-slate-100 truncate">' + t.title.replace(/'/g, "&apos;") + '</p>' +
+              '<p class="text-[10px] text-slate-400 truncate">' + t.artist.replace(/'/g, "&apos;") + '</p>' +
+              '</div>' +
+              '<button onclick="playWebMusic(\'' + t.audioUrl.replace(/'/g, "\\'") + '\', \'' + t.title.replace(/'/g, "\\'") + '\')" class="bg-indigo-600/80 text-white rounded-lg p-2 flex items-center justify-center hover:bg-indigo-500 transition-colors">' +
+              '<i class="fas fa-play text-[10px]"></i>' +
+              '</button>';
             resultsDiv.appendChild(row);
           });
           showToast("🎵 Qo'shiqlar ro'yxati yuklandi!");
@@ -647,6 +645,9 @@ app.post("/api/bot-info", async (req, res) => {
 });
 
 const USERS_FILE = path.join(process.cwd(), "users.json");
+if (!fs.existsSync(USERS_FILE)) {
+  fs.writeFileSync(USERS_FILE, JSON.stringify({}, null, 2), "utf-8");
+}
 
 // Foydalanuvchilar ro'yxati API
 app.get("/api/users", (req, res) => {
