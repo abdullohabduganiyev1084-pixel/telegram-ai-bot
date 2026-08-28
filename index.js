@@ -15,21 +15,17 @@ const startTime = new Date();
 app.use(express.json());
 app.use(express.static(path.join(process.cwd(), "public")));
 
+// Asosiy sahifa va WebApp yo'llari (Barchasida Admin Mini App ochiladi)
 app.get("/", (req, res) => {
-  const uptimeSeconds = Math.floor(process.uptime());
-  const hours = Math.floor(uptimeSeconds / 3600);
-  const minutes = Math.floor((uptimeSeconds % 3600) / 60);
-  const seconds = uptimeSeconds % 60;
+  res.sendFile(path.join(process.cwd(), "public", "admin.html"));
+});
 
-  res.json({
-    status: "online",
-    bot: "@mrx_uzbot",
-    owner: "Abdulloh Abdug'aniyev (8255294502)",
-    message: "Telegram AI Avto-javob boti 24/7 faol ishlamoqda!",
-    uptime: `${hours}h ${minutes}m ${seconds}s`,
-    startedAt: startTime.toISOString(),
-    serverTime: new Date().toISOString(),
-  });
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(process.cwd(), "public", "admin.html"));
+});
+
+app.get("/webapp", (req, res) => {
+  res.sendFile(path.join(process.cwd(), "public", "admin.html"));
 });
 
 app.get("/ping", (req, res) => {
@@ -40,21 +36,27 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "healthy", timestamp: Date.now() });
 });
 
-// Admin Panel Mini App sahifasi
-app.get("/admin", (req, res) => {
-  res.sendFile(path.join(process.cwd(), "public", "admin.html"));
-});
-
 // Admin Dashboard API
-app.get("/api/status", (req, res) => {
+app.get("/api/status", async (req, res) => {
   const uptimeSeconds = Math.floor(process.uptime());
   const hours = Math.floor(uptimeSeconds / 3600);
   const minutes = Math.floor((uptimeSeconds % 3600) / 60);
   const seconds = uptimeSeconds % 60;
 
+  let botName = "MRX_UZ";
+  let botDescription = "";
+  try {
+    const nameObj = await bot.api.getMyName();
+    botName = nameObj?.name || botName;
+    const descObj = await bot.api.getMyDescription();
+    botDescription = descObj?.description || "";
+  } catch (e) {}
+
   res.json({
     status: "online",
     bot: "@mrx_uzbot",
+    bot_name: botName,
+    bot_description: botDescription,
     uptime: `${hours}h ${minutes}m ${seconds}s`,
     clan_code: getClanCode(),
     admin: "Abdulloh Abdug'aniyev",
@@ -63,14 +65,33 @@ app.get("/api/status", (req, res) => {
   });
 });
 
+// Clan kodini yangilash API
 app.post("/api/clan-code", (req, res) => {
-  const { clan_code, admin_id } = req.body;
+  const { clan_code } = req.body;
   if (!clan_code) {
     return res.status(400).json({ success: false, message: "Kod kiritilmadi" });
   }
 
   setClanCode(clan_code.trim());
   res.json({ success: true, clan_code: clan_code.trim() });
+});
+
+// Bot ma'lumotlarini (Nomi, Tavsifi) yangilash API
+app.post("/api/bot-info", async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    if (name && name.trim()) {
+      await bot.api.setMyName(name.trim());
+    }
+    if (description && description.trim()) {
+      await bot.api.setMyDescription(description.trim());
+      await bot.api.setMyShortDescription(description.trim().substring(0, 120));
+    }
+    res.json({ success: true, message: "Bot ma'lumotlari muvaffaqiyatli saqlandi!" });
+  } catch (err) {
+    console.error("Bot info update error:", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 app.listen(PORT, () => {
