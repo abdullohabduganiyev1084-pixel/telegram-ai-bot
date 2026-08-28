@@ -396,7 +396,39 @@ bot.on("business_message", async (ctx) => {
 
     // 3. MATN KELGANDA:
     if (messageText) {
-      // A) Rasm yaratish so'rovi bo'lsa
+      const replyTo = ctx.businessMessage.reply_to_message;
+
+      // A) Agar avvalgi rasmga REPLY qilib yozilgan bo'lsa (Vision follow-up)
+      if (replyTo && replyTo.photo && replyTo.photo.length > 0) {
+        console.log(`[Business Rasmga Reply -> ${senderName}]: "${messageText}"`);
+        const highestPhoto = replyTo.photo[replyTo.photo.length - 1];
+        const downloaded = await downloadTelegramFileAsBase64(ctx, highestPhoto.file_id);
+
+        if (downloaded) {
+          const userPrompt = `Foydalanuvchi ushbu rasmga reply qilib quyidagicha yozdi/so'radi: "${messageText}".\nIltimos, rasmni sinchiklab ko'rib, foydalanuvchining savoliga juda to'liq, aniq, qiziqarli va professional javob bering.`;
+          const payload = [
+            {
+              inlineData: {
+                data: downloaded.base64Data,
+                mimeType: "image/jpeg",
+              },
+            },
+            userPrompt,
+          ];
+
+          const aiAnswer = await generateAiResponse(payload, false);
+          await ctx.reply(aiAnswer, {
+            business_connection_id: ctx.businessMessage.business_connection_id,
+            reply_parameters: {
+              message_id: ctx.businessMessage.message_id,
+              allow_sending_without_reply: true,
+            },
+          });
+          return;
+        }
+      }
+
+      // B) Rasm yaratish so'rovi bo'lsa
       if (isImageRequest(messageText)) {
         const promptText = extractImagePrompt(messageText);
         const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=1024&height=1024&nologo=true`;
@@ -417,7 +449,7 @@ bot.on("business_message", async (ctx) => {
         }
       }
 
-      // B) Musiqa qidirish so'rovi bo'lsa
+      // C) Musiqa qidirish so'rovi bo'lsa
       if (isMusicRequest(messageText)) {
         const musicQuery = extractMusicQuery(messageText);
         if (musicQuery) {
@@ -443,7 +475,7 @@ bot.on("business_message", async (ctx) => {
         }
       }
 
-      // C) Oddiy matnli savol bo'lsa (To'liq javob)
+      // D) Oddiy matnli savol bo'lsa (To'liq javob)
       console.log(`[Business Matn][${senderName}]: ${messageText}`);
       const aiAnswer = await generateAiResponse(messageText, false);
 
@@ -705,12 +737,13 @@ bot.on("message:text", async (ctx) => {
   }
 
   // GURUHDA:
-  // Faqat botning xabariga reply qilinganda yoki bot mention qilinganda javob beradi!
+  // Faqat botning xabariga reply qilinganda, rasmga reply qilinganda yoki bot mention qilinganda javob beradi!
   if (isGroup) {
     const isReplyToBot = replyTo && replyTo.from?.id === ctx.me?.id;
+    const isReplyToPhoto = replyTo && replyTo.photo && replyTo.photo.length > 0;
     const isMentioned = messageText.toLowerCase().includes(`@${botUsername}`);
 
-    if (!isReplyToBot && !isMentioned) {
+    if (!isReplyToBot && !isMentioned && !isReplyToPhoto) {
       return; // Guruhdagi boshqa suhbatlarga mutlaqo aralashmaydi
     }
   }
@@ -721,7 +754,36 @@ bot.on("message:text", async (ctx) => {
   const stopTyping = startTypingIndicator(ctx, false);
 
   try {
-    // 1. Rasm yaratish so'rovi bo'lsa
+    // 1. Agar avvalgi rasmga REPLY qilib yozilgan bo'lsa (Vision follow-up)
+    if (replyTo && replyTo.photo && replyTo.photo.length > 0) {
+      console.log(`[Rasmga Reply qilindi -> ${senderName}]: "${messageText}"`);
+      const highestPhoto = replyTo.photo[replyTo.photo.length - 1];
+      const downloaded = await downloadTelegramFileAsBase64(ctx, highestPhoto.file_id);
+
+      if (downloaded) {
+        const userPrompt = `Foydalanuvchi ushbu rasmga reply qilib quyidagicha yozdi/so'radi: "${messageText}".\nIltimos, rasmni sinchiklab ko'rib, foydalanuvchining savoliga juda to'liq, aniq, qiziqarli va professional javob bering.`;
+        const payload = [
+          {
+            inlineData: {
+              data: downloaded.base64Data,
+              mimeType: "image/jpeg",
+            },
+          },
+          userPrompt,
+        ];
+
+        const aiAnswer = await generateAiResponse(payload, isGroup);
+        await ctx.reply(aiAnswer, {
+          reply_parameters: {
+            message_id: ctx.message.message_id,
+            allow_sending_without_reply: true,
+          },
+        });
+        return;
+      }
+    }
+
+    // 2. Rasm yaratish so'rovi bo'lsa
     if (isImageRequest(messageText)) {
       const promptText = extractImagePrompt(messageText);
       const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=1024&height=1024&nologo=true`;
@@ -741,7 +803,7 @@ bot.on("message:text", async (ctx) => {
       }
     }
 
-    // 2. Musiqa qidirish so'rovi bo'lsa
+    // 3. Musiqa qidirish so'rovi bo'lsa
     if (isMusicRequest(messageText)) {
       const musicQuery = extractMusicQuery(messageText);
       if (musicQuery) {
@@ -766,7 +828,7 @@ bot.on("message:text", async (ctx) => {
       }
     }
 
-    // 3. Oddiy matnli savollar va suhbatlar (To'liq, chuqur va aniq javob)
+    // 4. Oddiy matnli savollar va suhbatlar (To'liq, chuqur va aniq javob)
     let promptInput = "";
     if (isGroup) {
       const repliedText = replyTo?.text || replyTo?.caption || "[Bot Xabari]";
