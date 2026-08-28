@@ -21,8 +21,7 @@ app.get("/", (req, res) => {
   res.json({
     status: "online",
     bot: "@mrx_uzbot",
-    owner: "Abdulloh Abdug'aniyev (+998939881477)",
-    message: "Abdullohning Telegram AI Avto-javob boti 24/7 faol ishlamoqda!",
+    message: "Telegram AI Avto-javob boti 24/7 faol ishlamoqda!",
     uptime: `${hours}h ${minutes}m ${seconds}s`,
     startedAt: startTime.toISOString(),
     serverTime: new Date().toISOString(),
@@ -98,45 +97,144 @@ const AI_MODELS = [
 ];
 
 // Qiziqarli emojilar to'plami (Stiker va emojilarga javob qaytarish uchun)
-const FUN_EMOJIS = ["🔥", "⚡️", "😎", "🚀", "✨", "🤝", "🙌", "⚽️", "🎮", "💡", "🎯", "👏", "🏆"];
+const FUN_EMOJIS = ["🔥", "⚡️", "😎", "🚀", "✨", "🤝", "🙌", "⚽️", "🎮", "💡", "🎯", "👏", "🏆", "🎧", "🎨"];
 
 function getRandomEmoji() {
   return FUN_EMOJIS[Math.floor(Math.random() * FUN_EMOJIS.length)];
 }
 
-// Tizimli Prompt generatsiyasi (Guruh yoki Shaxsiy chat holatiga qarab)
+// ==========================================
+// 4. AI RASM GENERATSIYASI & MUSIQA QIDIRUV FUNKSIYALARI
+// ==========================================
+
+// Rasm yaratish so'rovini aniqlash
+function isImageRequest(text) {
+  if (!text) return false;
+  const t = text.toLowerCase().trim();
+  return (
+    t.startsWith("/image") ||
+    t.startsWith("/rasm") ||
+    t.startsWith("/draw") ||
+    t.includes("rasm yarat") ||
+    t.includes("rasm chiz") ||
+    t.includes("rasmini chiz") ||
+    t.includes("rasmini yarat") ||
+    t.includes("rasm qilib ber") ||
+    t.includes("rasm chiqar")
+  );
+}
+
+// Rasm matnini tozalash (Prompt)
+function extractImagePrompt(text) {
+  let p = text.trim();
+  p = p.replace(/^\/(image|rasm|draw)\s*/i, "");
+  p = p.replace(/(menga|iltimos|qani)?\s*(rasm\s*yaratib\s*ber|rasm\s*chizib\s*ber|rasmini\s*chiz|rasmini\s*yarat|rasm\s*qilib\s*ber|rasm\s*chiqarib\s*ber)/gi, "");
+  p = p.replace(/[:\-]/g, " ").trim();
+  return p || "beautiful aesthetic high quality 4k wallpaper";
+}
+
+// Musiqa qidirish so'rovini aniqlash
+function isMusicRequest(text) {
+  if (!text) return false;
+  const t = text.toLowerCase().trim();
+  return (
+    t.startsWith("/music") ||
+    t.startsWith("/musiqa") ||
+    t.startsWith("/mp3") ||
+    t.startsWith("/song") ||
+    t.includes("musiqa top") ||
+    t.includes("qo'shiq top") ||
+    t.includes("qoshiq top") ||
+    t.includes("musiqasini top") ||
+    t.includes("qo'shig'ini top") ||
+    t.includes("mp3 top") ||
+    t.includes("musiqa tashla") ||
+    t.includes("qo'shiq tashla") ||
+    t.includes("qoshiq tashla")
+  );
+}
+
+// Musiqa nomini tozalash (Query)
+function extractMusicQuery(text) {
+  let q = text.trim();
+  q = q.replace(/^\/(music|musiqa|mp3|song)\s*/i, "");
+  q = q.replace(/(menga|iltimos)?\s*(musiqa\s*topib\s*ber|qo'shiq\s*topib\s*ber|qoshiq\s*topib\s*ber|musiqasini\s*top|qo'shig'ini\s*top|mp3\s*top|musiqa\s*tashla|qo'shiq\s*tashla)/gi, "");
+  q = q.replace(/[:\-]/g, " ").trim();
+  return q;
+}
+
+// Musiqa qidiruvchi (Deezer & iTunes API)
+async function searchMusic(query) {
+  try {
+    const res = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=5`);
+    const data = await res.json();
+    if (data && data.data && data.data.length > 0) {
+      const track = data.data[0];
+      return {
+        title: track.title,
+        artist: track.artist?.name || "Noma'lum ijrochi",
+        audioUrl: track.preview,
+        duration: track.duration,
+      };
+    }
+  } catch (e) {
+    console.error("Deezer search error:", e.message);
+  }
+
+  try {
+    const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=3`);
+    const data = await res.json();
+    if (data && data.results && data.results.length > 0) {
+      const track = data.results[0];
+      return {
+        title: track.trackName,
+        artist: track.artistName,
+        audioUrl: track.previewUrl,
+        duration: 30,
+      };
+    }
+  } catch (e) {
+    console.error("iTunes search error:", e.message);
+  }
+
+  return null;
+}
+
+// ==========================================
+// 5. TIZIMLI PROMPT & AI JAVOB GENERATSIYASI
+// ==========================================
+
 function getSystemPrompt(isGroup = false) {
   const clanCode = getClanCode();
 
   if (isGroup) {
     return `
-Siz Abdullohning (Telegram: @ABDULLOH_ABDUGANIYEV_11, Tel: +998939881477, Bot: @mrx_uzbot) shaxsiy eng tezkor, aqlli va samimiy AI assistentisiz.
+Siz Telegram guruhida xushmuomala, aqlli va bilimdon yordamchisiz.
 
-GURUHDA ISHLASH QOIDALARI:
-1. CLAN KODI: Faqat guruhda so'ralganda faol Clan kodini ayting: "${clanCode}".
-2. FOYDALANUVCHILAR SAVOLLARIGA: O'yinlar (DLS, futbol), texnologiya, dasturlash, hayotiy savollar, rasm va fayllar tahlili bo'yicha juda to'liq, chuqur, aniq va chiroyli emojilar bilan javob qaytaring.
-3. ABDULLOH HAQIDA: Abdulloh Abdug'aniyev — 14 yoshda, Shahrixon 2-maktab 9-sinf, KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-stack dasturchi (Node.js, Telegram botlar, veb-saytlar, AI). Aloqa: @ABDULLOH_ABDUGANIYEV_11 | Tel: +998939881477.
-4. Javoblaringiz do'stona, ravon va professional bo'lsin.
+GURUH QOIDALARI:
+1. CLAN KODI: Faqat guruh a'zolari so'raganida faol Clan kodini ayting: "${clanCode}".
+2. BATAFSIL MA'LUMOT: Foydalanuvchi qanday savol bermasin (sport, o'yinlar masalan DLS, dasturlash, kino, texnologiya, rasm/fayl tahlili), savolga juda TO'LIQ, CHUQUR, TUSHUNARLI, QIZIQARLI va chiroyli emojilar bilan sifatli javob bering. Qisqa qilib tashlamang!
+3. EGALIK MA'LUMOTI (Agar so'ralsa): Egasi — 14 yoshli dasturchi (Andijon, Shahrixon 2-maktab 9-sinf, KING SCHOOL'da Bobur Vahobov (UZMIND) o'quvchisi). Telefon raqamlarini bermang!
+4. MULOQOT: Xuddi haqiqiy do'stona insondek samimiy va jonli gaplashing.
 `;
   } else {
     return `
-Siz Abdullohning (Telegram: @ABDULLOH_ABDUGANIYEV_11, Tel: +998939881477, Bot: @mrx_uzbot) shaxsiy eng tezkor, aqlli va samimiy AI assistentisiz.
+Siz shaxsiy chatda xuddi haqiqiy do'stdek samimiy, juda aqlli, bilimdon va chaqqon inson sifatida gaplashuvchi yordamchisiz.
 
-SHAXSIY CHAT (DIRECT/BUSINESS) QOIDALARI:
-1. MUHIM: Shaxsiy chatlarda Clan kodi haqida UMUMAN gapirmang va Clan kodini tashlamang! Agar clan kodi so'ralsa, "Clan kodi faqat rasmiy guruhimizda beriladi! Guruhda /kod deb yozishingiz mumkin." deb ayting.
-2. RASM VA FAYLLAR TAHLILI: Foydalanuvchi qanday rasm (butsi, mashina, texnika, buyum, tabiat) yoki fayl tashlasa, uni sinchiklab ko'rib, u haqida juda to'liq, qiziqarli va professional ma'lumot bering.
-3. HAR QANDAY SAVOLGA: To'liq, aniq va chiroyli emojilar bilan sifatli javob qaytaring.
-4. ABDULLOH HAQIDA (QISQA): Abdulloh Abdug'aniyev — 14 yoshda, Shahrixon 2-maktab 9-sinf, KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-stack dasturchi. Aloqa: @ABDULLOH_ABDUGANIYEV_11 | Tel: +998939881477.
+SHAXSIY CHAT QOIDALARI (MUHIM):
+1. CLAN KODI HAQIDA UMUMAN GAPIRMANG: Shaxsiy chatlarda Clan kodi haqida hech narsa yozmang va "guruhdan olasiz" degan gaplarni ham umuman ishlatmang.
+2. ISMNI DOIMIY TAKRORLAMANG: Har gapda "Men falonchining assistentiman" deb robotdek takrorlamang. Xuddi haqiqiy inson suhbatlashayotgandek tabiiy gaplashing.
+3. BATAFSIL VA TO'LIQ MA'LUMOT BERISH: Foydalanuvchi har qanday mavzuda savol bersa yoki rasm/fayl yuborsa (butsi, mashina, buyum, texnika, dasturlash va h.k.), unga yuzaki emas, balki JUDA TO'LIQ, KENG, CHUQUR, TUSHUNARLI va mos emojilar bilan boyitilgan holda javob bering.
+4. EGASI HAQIDA (Faqat so'ralgandagina): Egasi — 14 yoshda, Andijon viloyati Shahrixon tumani 2-maktab 9-sinf o'quvchisi hamda KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-stack dasturchi. Telefon raqami yoki shaxsiy kontaktlarini bermang!
+5. DO'STONA RUH: Foydalanuvchi bilan o'ta samimiy, hurmatli va qiziqarli muomala qiling.
 `;
   }
 }
 
-// AI javob generatsiya qilish funksiyasi (Matn, Rasm va Fayllar bilan)
+// AI javob generatsiya qilish funksiyasi (Ultra-detailed & Fast)
 async function generateAiResponse(contentPayload, isGroup = false) {
   let lastError = null;
   const prompt = getSystemPrompt(isGroup);
-
-  // Payload matn yoki multipart (rasm/fayl) bo'lishi mumkin
   const contents = Array.isArray(contentPayload) ? contentPayload : [contentPayload];
 
   for (const modelName of AI_MODELS) {
@@ -146,7 +244,7 @@ async function generateAiResponse(contentPayload, isGroup = false) {
         contents: contents,
         config: {
           systemInstruction: prompt,
-          maxOutputTokens: 600,
+          maxOutputTokens: 1500,
           temperature: 0.7,
         },
       });
@@ -161,14 +259,10 @@ async function generateAiResponse(contentPayload, isGroup = false) {
   }
 
   console.error("[AI Modellar xatolik berdi]:", lastError);
-  return (
-    `Assalomu alaykum! Xabaringiz qabul qilindi. 😊\n\n` +
-    `Abdulloh hozir ish jarayonida, tez orada o'zi ham aloqaga chiqadi!\n` +
-    `📞 Tel: +998939881477 | 📩 Telegram: @ABDULLOH_ABDUGANIYEV_11`
-  );
+  return "Salom! Xabaringizni oldim. Hozir bir oz bandroq edim, tez orada to'liqroq javob yozaman! 😊";
 }
 
-// Typing ("yozmoqda...") statusini ko'rsatish
+// Typing holatini ko'rsatish
 function startTypingIndicator(ctx, isBusiness = false) {
   const sendTyping = async () => {
     try {
@@ -194,7 +288,7 @@ function startTypingIndicator(ctx, isBusiness = false) {
   };
 }
 
-// Telegramdan faylni yuklab olib Base64 ga o'girish helperi
+// Faylni Telegramdan yuklab olib Base64 ga aylantirish
 async function downloadTelegramFileAsBase64(ctx, fileId) {
   try {
     const fileInfo = await ctx.api.getFile(fileId);
@@ -213,7 +307,7 @@ async function downloadTelegramFileAsBase64(ctx, fileId) {
 }
 
 // ==========================================
-// 4. TELEGRAM EVENTLARI
+// 6. TELEGRAM EVENTLARI
 // ==========================================
 
 // Business ulanish holati
@@ -221,7 +315,7 @@ bot.on("business_connection", (ctx) => {
   console.log(`[Business Connection] Ulanish o'rnatildi! ID: ${ctx.businessConnection.id}`);
 });
 
-// Telegram Business xabarlarini qabul qilish (Matn, Rasm, Stiker)
+// Telegram Business xabarlarini qabul qilish
 bot.on("business_message", async (ctx) => {
   const fromId = ctx.businessMessage.from?.id;
   const chatId = ctx.businessMessage.chat?.id;
@@ -229,9 +323,9 @@ bot.on("business_message", async (ctx) => {
   const photo = ctx.businessMessage.photo;
   const sticker = ctx.businessMessage.sticker;
   const caption = ctx.businessMessage.caption;
-  const senderName = ctx.businessMessage.from?.first_name || "Foydalanuvchi";
+  const senderName = ctx.businessMessage.from?.first_name || "Do'stim";
 
-  // Agar xabarni Abdulloh o'zi yozgan bo'lsa (fromId !== chatId), bot javob bermaydi
+  // Agar xabarni o'zi yozgan bo'lsa (chiquvchi xabar), bot javob bermaydi
   if (fromId !== chatId) {
     return;
   }
@@ -239,11 +333,11 @@ bot.on("business_message", async (ctx) => {
   const stopTyping = startTypingIndicator(ctx, true);
 
   try {
-    // 1. STIKER KELGANDA: Boshqacha stiker/emoji va xabar bilan javob qaytarish
+    // 1. STIKER KELGANDA: Boshqacha emoji va samimiy xabar bilan javob
     if (sticker) {
       const emoji = getRandomEmoji();
       await ctx.reply(
-        `${emoji} Salom ${senderName}! Sizga qanday yordam bera olaman? Agar biror savolingiz, tahlil qilish uchun rasm yoki faylingiz bo'lsa bemalol yuboring! 😊`,
+        `${emoji} Salom ${senderName}! Qandaysiz? Sizga qanday yordam bera olaman? Biror savol, rasm, musiqa yoki tahlil kerak bo'lsa bemalol yozing! 😊`,
         {
           business_connection_id: ctx.businessMessage.business_connection_id,
           reply_parameters: {
@@ -255,14 +349,14 @@ bot.on("business_message", async (ctx) => {
       return;
     }
 
-    // 2. RASM KELGANDA: Rasmni ko'rib, tahlil qilish (Vision)
+    // 2. RASM KELGANDA: Rasmni ko'rib to'liq tahlil qilish (Vision AI)
     if (photo && photo.length > 0) {
       console.log(`[Business Rasm keldi -> ${senderName}]`);
       const highestPhoto = photo[photo.length - 1];
       const downloaded = await downloadTelegramFileAsBase64(ctx, highestPhoto.file_id);
 
       if (downloaded) {
-        const userPrompt = caption || "Ushbu rasmni sinchiklab tahlil qiling. Undagi buyum (masalan: butsi, mashina, kiyim, texnika yoki har qanday narsa) haqida juda to'liq, qiziqarli va professional ma'lumot bering.";
+        const userPrompt = caption || "Ushbu rasmni sinchiklab ko'rib chiqing. Undagi buyum (masalan: butsi, mashina, kiyim, texnika, odam yoki buyum) haqida JUDA TO'LIQ, qiziqarli, aniq va professional ma'lumot bering.";
         const payload = [
           {
             inlineData: {
@@ -287,6 +381,54 @@ bot.on("business_message", async (ctx) => {
 
     // 3. MATN KELGANDA:
     if (messageText) {
+      // A) Rasm yaratish so'rovi bo'lsa
+      if (isImageRequest(messageText)) {
+        const promptText = extractImagePrompt(messageText);
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=1024&height=1024&nologo=true`;
+
+        try {
+          await ctx.replyWithPhoto(imageUrl, {
+            caption: `🎨 *Siz so'ragan rasm:* _${promptText}_\n\nMarhamat! Yana boshqa rasm kerak bo'lsa bemalol ayting. ✨`,
+            parse_mode: "Markdown",
+            business_connection_id: ctx.businessMessage.business_connection_id,
+            reply_parameters: {
+              message_id: ctx.businessMessage.message_id,
+              allow_sending_without_reply: true,
+            },
+          });
+          return;
+        } catch (imgErr) {
+          console.error("Image reply error:", imgErr.message);
+        }
+      }
+
+      // B) Musiqa qidirish so'rovi bo'lsa
+      if (isMusicRequest(messageText)) {
+        const musicQuery = extractMusicQuery(messageText);
+        if (musicQuery) {
+          const track = await searchMusic(musicQuery);
+          if (track && track.audioUrl) {
+            try {
+              await ctx.replyWithAudio(track.audioUrl, {
+                title: track.title,
+                performer: track.artist,
+                caption: `🎵 *${track.title}* — ${track.artist}\n\nMarhamat, musiqani tinglashingiz mumkin! 🎧✨`,
+                parse_mode: "Markdown",
+                business_connection_id: ctx.businessMessage.business_connection_id,
+                reply_parameters: {
+                  message_id: ctx.businessMessage.message_id,
+                  allow_sending_without_reply: true,
+                },
+              });
+              return;
+            } catch (audioErr) {
+              console.error("Audio reply error:", audioErr.message);
+            }
+          }
+        }
+      }
+
+      // C) Oddiy matnli savol bo'lsa (To'liq javob)
       console.log(`[Business Matn][${senderName}]: ${messageText}`);
       const aiAnswer = await generateAiResponse(messageText, false);
 
@@ -309,8 +451,8 @@ bot.on("business_message", async (ctx) => {
 bot.command("start", async (ctx) => {
   const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
   const helpText = isGroup
-    ? "👋 Assalomu alaykum! Men Abdullohning shaxsiy AI assistentiman.\n\nGuruhda menga Reply qilib savol berishingiz, rasm yoki fayl tashlab tahlil qilishingiz yoki /kod buyrug'i orqali Clan kodini olishingiz mumkin! 🚀"
-    : "👋 Assalomu alaykum! Men Abdulloh Abdug'aniyevning shaxsiy aqlli AI assistentiman.\n\nSavollaringiz bo'lsa bemalol yozishingiz, rasm yoki fayl yuborib tahlil qildirishingiz mumkin! 🚀";
+    ? "👋 Assalomu alaykum!\n\nGuruhda menga Reply qilib istalgan savolingizni berishingiz, rasm/fayl tashlab tahlil qildirishingiz, rasm chizdirishingiz, musiqa so'rashingiz yoki /kod buyrug'i orqali Clan kodini olishingiz mumkin! 🚀"
+    : "👋 Assalomu alaykum!\n\nIstalgan mavzuda savollaringiz bo'lsa bemalol yozing, rasm yoki fayl yuborib to'liq tahlil qildiring, AI orqali rasm chizdiring yoki musiqa so'rang! 🚀";
 
   await ctx.reply(helpText, {
     reply_parameters: {
@@ -320,20 +462,20 @@ bot.command("start", async (ctx) => {
   });
 });
 
-// /kod buyrug'i - Faqat guruhlarda ishlaydi yoki o'rnatiladi
+// /kod buyrug'i - Faqat guruhda ishlaydi yoki o'rnatiladi
 bot.command(["kod", "clankod", "setkod"], async (ctx) => {
   const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
   const text = ctx.message.text.trim();
   const parts = text.split(/\s+/);
 
-  // Agar yangi kod o'rnatilayotgan bo'lsa (/kod 7777)
+  // Agar yangi kod kiritilayotgan bo'lsa (/kod 7777)
   if (parts.length > 1) {
     const newCode = parts.slice(1).join(" ");
     setClanCode(newCode);
     await ctx.reply(
       `✅ *Clan kodi muvaffaqiyatli saqlandi!*\n\n` +
       `🔑 *Yangi Clan kodi:* \`${newCode}\`\n\n` +
-      `Endi guruhda kimdir kod so'rasa, bot ushbu yangi kodni taqdim etadi! 🔥`,
+      `Endi guruhda kimdir kod so'rasa, ushbu kod taqdim etiladi! 🔥`,
       {
         parse_mode: "Markdown",
         reply_parameters: {
@@ -345,22 +487,18 @@ bot.command(["kod", "clankod", "setkod"], async (ctx) => {
     return;
   }
 
-  // Agar shaxsiy chatda /kod deb yozilsa
+  // Shaxsiy chatda /kod yozilsa (Chatda clan kodi aytilmaydi)
   if (!isGroup) {
-    await ctx.reply(
-      `🔒 Clan kodi faqat rasmiy guruhimizda beriladi!\n\nGuruhga kirib \`/kod\` deb yozishingiz yoki guruhda so'rashingiz mumkin. 😊`,
-      {
-        parse_mode: "Markdown",
-        reply_parameters: {
-          message_id: ctx.message.message_id,
-          allow_sending_without_reply: true,
-        },
-      }
-    );
+    await ctx.reply("Bu buyruq faqat rasmiy guruhda ishlaydi. 😊", {
+      reply_parameters: {
+        message_id: ctx.message.message_id,
+        allow_sending_without_reply: true,
+      },
+    });
     return;
   }
 
-  // Guruhda /kod deb yozilsa
+  // Guruhda /kod yozilsa
   const currentCode = getClanCode();
   await ctx.reply(
     `🎮 *Hozirgi Clan kodi:* \`${currentCode}\`\n\n` +
@@ -378,18 +516,15 @@ bot.command(["kod", "clankod", "setkod"], async (ctx) => {
 
 bot.command(["about", "portfolio", "info", "abdulloh"], async (ctx) => {
   const infoText = 
-`👨‍💻 *Abdulloh Abdug'aniyev:*
+`👨‍💻 *Abdulloh Abdug'aniyev haqida:*
 
-👤 *Yoshi:* 14 yoshda | Shahrixon tumani
+👤 *Yoshi:* 14 yoshda
+📍 *Manzil:* Andijon viloyati, Shahrixon tumani
 🏫 *Maktab:* 2-maktab, 9-sinf
-🎓 *IT Ta'limi:* KING SCHOOL (*Bobur Vahobov / UZMIND* shogirdi)
+🎓 *IT Ta'limi:* KING SCHOOL (*Bobur Vahobov / UZMIND* o'quvchisi)
 🚀 *Mutaxassisligi:* Full-Stack dasturchi (Node.js, Botlar, Veb-saytlar, AI)
 
-📞 *Telefon:* +998939881477
-📩 *Telegram:* @ABDULLOH_ABDUGANIYEV_11
-🤖 *AI Bot:* @mrx_uzbot
-
-_Xabaringizni qoldiring, Abdulloh tez orada aloqaga chiqadi!_ ✨`;
+_Savollaringiz bo'lsa bemalol yozishingiz mumkin!_ ✨`;
 
   await ctx.reply(infoText, { 
     parse_mode: "Markdown",
@@ -405,7 +540,7 @@ bot.on("message:sticker", async (ctx) => {
   const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
   const replyTo = ctx.message.reply_to_message;
   const senderId = ctx.from?.id;
-  const senderName = ctx.from?.first_name || "Foydalanuvchi";
+  const senderName = ctx.from?.first_name || "Do'stim";
 
   if (senderId === ctx.me?.id) return;
 
@@ -448,7 +583,7 @@ bot.on("message:photo", async (ctx) => {
     const isReplyToBot = replyTo?.from?.id === ctx.me?.id;
     const isMentioned = caption.toLowerCase().includes(`@${botUsername}`);
     if (!isReplyToBot && !isMentioned) {
-      return; // Guruhda boshqalarga xalaqit bermaydi
+      return;
     }
   }
 
@@ -460,7 +595,7 @@ bot.on("message:photo", async (ctx) => {
     const downloaded = await downloadTelegramFileAsBase64(ctx, highestPhoto.file_id);
 
     if (downloaded) {
-      const userPrompt = caption || "Ushbu rasmni sinchiklab tahlil qiling. Undagi buyum (masalan: butsi, mashina, kiyim, texnika yoki har qanday narsa) haqida juda to'liq, qiziqarli, aniq va professional ma'lumot bering.";
+      const userPrompt = caption || "Ushbu rasmni sinchiklab ko'rib chiqing. Undagi buyum (masalan: butsi, mashina, kiyim, texnika yoki buyum) haqida JUDA TO'LIQ, qiziqarli, aniq va professional ma'lumot bering.";
       const payload = [
         {
           inlineData: {
@@ -479,8 +614,6 @@ bot.on("message:photo", async (ctx) => {
           allow_sending_without_reply: true,
         },
       });
-
-      console.log(`[AI Rasm Tahlil Javob -> ${senderName}]`);
     }
   } catch (error) {
     console.error("[Photo Vision Error]:", error?.message || error);
@@ -534,8 +667,6 @@ bot.on("message:document", async (ctx) => {
           allow_sending_without_reply: true,
         },
       });
-
-      console.log(`[AI Fayl Tahlil Javob -> ${senderName}]`);
     }
   } catch (error) {
     console.error("[Document Analysis Error]:", error?.message || error);
@@ -549,7 +680,7 @@ bot.on("message:text", async (ctx) => {
   const isPrivate = ctx.chat.type === "private";
   const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
   const senderId = ctx.from?.id;
-  const senderName = ctx.from?.first_name || "Foydalanuvchi";
+  const senderName = ctx.from?.first_name || "Do'stim";
   const messageText = ctx.message.text;
   const replyTo = ctx.message?.reply_to_message;
   const botUsername = ctx.me?.username?.toLowerCase() || "mrx_uzbot";
@@ -559,28 +690,72 @@ bot.on("message:text", async (ctx) => {
   }
 
   // GURUHDA:
-  // "guruhda odamlar bir biri bilan yozganda bot hech qachon yozmasin, qachonki botning habariga reply qilganimizda javob yozsin"
+  // Faqat botning xabariga reply qilinganda yoki bot mention qilinganda javob beradi!
   if (isGroup) {
     const isReplyToBot = replyTo && replyTo.from?.id === ctx.me?.id;
     const isMentioned = messageText.toLowerCase().includes(`@${botUsername}`);
 
-    // Agar botning xabariga reply qilinmagan bo'lsa va bot mention qilinmagan bo'lsa: BOT JIM TURADI!
     if (!isReplyToBot && !isMentioned) {
-      return;
+      return; // Guruhdagi boshqa suhbatlarga mutlaqo aralashmaydi
     }
   }
 
   const chatContextTitle = isGroup ? `[Guruh: ${ctx.chat.title}]` : "[Direct]";
-  console.log(`>>> ${chatContextTitle}[${senderName}]: "${messageText}" ga javob tayyorlanmoqda...`);
+  console.log(`>>> ${chatContextTitle}[${senderName}]: "${messageText}"`);
 
   const stopTyping = startTypingIndicator(ctx, false);
 
   try {
-    let promptInput = "";
+    // 1. Rasm yaratish so'rovi bo'lsa
+    if (isImageRequest(messageText)) {
+      const promptText = extractImagePrompt(messageText);
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=1024&height=1024&nologo=true`;
 
+      try {
+        await ctx.replyWithPhoto(imageUrl, {
+          caption: `🎨 *Siz so'ragan rasm:* _${promptText}_\n\nMarhamat! Yana boshqa rasm kerak bo'lsa bemalol ayting. ✨`,
+          parse_mode: "Markdown",
+          reply_parameters: {
+            message_id: ctx.message.message_id,
+            allow_sending_without_reply: true,
+          },
+        });
+        return;
+      } catch (imgErr) {
+        console.error("Direct Image reply error:", imgErr.message);
+      }
+    }
+
+    // 2. Musiqa qidirish so'rovi bo'lsa
+    if (isMusicRequest(messageText)) {
+      const musicQuery = extractMusicQuery(messageText);
+      if (musicQuery) {
+        const track = await searchMusic(musicQuery);
+        if (track && track.audioUrl) {
+          try {
+            await ctx.replyWithAudio(track.audioUrl, {
+              title: track.title,
+              performer: track.artist,
+              caption: `🎵 *${track.title}* — ${track.artist}\n\nMarhamat, musiqani tinglashingiz mumkin! 🎧✨`,
+              parse_mode: "Markdown",
+              reply_parameters: {
+                message_id: ctx.message.message_id,
+                allow_sending_without_reply: true,
+              },
+            });
+            return;
+          } catch (audioErr) {
+            console.error("Direct Audio reply error:", audioErr.message);
+          }
+        }
+      }
+    }
+
+    // 3. Oddiy matnli savollar va suhbatlar (To'liq, chuqur va aniq javob)
+    let promptInput = "";
     if (isGroup) {
       const repliedText = replyTo?.text || replyTo?.caption || "[Bot Xabari]";
-      promptInput = `Guruh nomi: "${ctx.chat.title}".\nBotning avvalgi xabari: "${repliedText}"\nFoydalanuvchi (${senderName}) botga reply qilib yozdi: "${messageText}".\nFoydalanuvchining savoliga mos, to'liq, qiziqarli, aniq va xushmuomala javob qaytaring.`;
+      promptInput = `Guruh nomi: "${ctx.chat.title}".\nBotning avvalgi xabari: "${repliedText}"\nFoydalanuvchi (${senderName}) botga reply qilib yozdi: "${messageText}".\nFoydalanuvchining savoliga mos, juda to'liq, qiziqarli, aniq va xushmuomala javob qaytaring.`;
     } else {
       promptInput = messageText;
     }
@@ -594,7 +769,7 @@ bot.on("message:text", async (ctx) => {
       },
     });
 
-    console.log(`[AI Javob -> ${senderName}]: ${aiAnswer}`);
+    console.log(`[AI Javob -> ${senderName}]: ${aiAnswer.substring(0, 80)}...`);
   } catch (error) {
     console.error("[Direct/Group Reply Error]:", error?.message || error);
   } finally {
@@ -615,7 +790,7 @@ bot.on("channel_post:text", async (ctx) => {
 });
 
 // ==========================================
-// 5. CRASH VA XATOLIKLARDAN HIMOYA (24/7 Barqarorlik)
+// 7. CRASH VA XATOLIKLARDAN HIMOYA (24/7 Barqarorlik)
 // ==========================================
 bot.catch((err) => {
   const ctx = err.ctx;
@@ -651,7 +826,7 @@ process.once("SIGTERM", () => {
 });
 
 // ==========================================
-// 6. BOTNI ISHGA TUSHIRISH (Auto-reconnect loop)
+// 8. BOTNI ISHGA TUSHIRISH (Auto-reconnect loop)
 // ==========================================
 console.log("==========================================");
 console.log(" Telegram AI Bot 24/7 tizimi ishga tushmoqda...");
