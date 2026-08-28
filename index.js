@@ -447,32 +447,52 @@ function isAdmin(ctx) {
 }
 
 // ==========================================
-// 3. CLAN KODI BOSHQARUVI
+// ==========================================
+// 3. CLAN KODI VA RASMI BOSHQARUVI
 // ==========================================
 const CLAN_DATA_FILE = path.join(process.cwd(), "clan_data.json");
 
-function getClanCode() {
+function getClanData() {
   try {
     if (fs.existsSync(CLAN_DATA_FILE)) {
-      const data = JSON.parse(fs.readFileSync(CLAN_DATA_FILE, "utf-8"));
-      return data.clan_code || "7777";
+      return JSON.parse(fs.readFileSync(CLAN_DATA_FILE, "utf-8"));
     }
   } catch (e) {
-    console.error("Clan kodini o'qishda xatolik:", e);
+    console.error("Clan ma'lumotlarini o'qishda xatolik:", e);
   }
-  return "7777";
+  return { clan_code: "7777" };
+}
+
+function getClanCode() {
+  return getClanData().clan_code || "7777";
+}
+
+function getClanPhoto() {
+  return getClanData().clan_photo_file_id || null;
 }
 
 function setClanCode(newCode) {
   try {
-    fs.writeFileSync(
-      CLAN_DATA_FILE,
-      JSON.stringify({ clan_code: newCode, updated_at: new Date().toISOString() }, null, 2),
-      "utf-8"
-    );
+    const data = getClanData();
+    data.clan_code = newCode;
+    data.updated_at = new Date().toISOString();
+    fs.writeFileSync(CLAN_DATA_FILE, JSON.stringify(data, null, 2), "utf-8");
     return true;
   } catch (e) {
     console.error("Clan kodini saqlashda xatolik:", e);
+    return false;
+  }
+}
+
+function setClanPhoto(fileId) {
+  try {
+    const data = getClanData();
+    data.clan_photo_file_id = fileId;
+    data.updated_at = new Date().toISOString();
+    fs.writeFileSync(CLAN_DATA_FILE, JSON.stringify(data, null, 2), "utf-8");
+    return true;
+  } catch (e) {
+    console.error("Clan rasmini saqlashda xatolik:", e);
     return false;
   }
 }
@@ -888,6 +908,22 @@ function isWeatherRequest(text) {
   );
 }
 
+function isClanCodeRequest(text) {
+  if (!text) return false;
+  const t = text.toLowerCase().trim();
+  return (
+    t.includes("clan uchun kod") ||
+    t.includes("clan kodi") ||
+    t.includes("clanga kod") ||
+    t.includes("clan kodini ber") ||
+    t.includes("clan kodi nima") ||
+    t.includes("klan kodi") ||
+    t.includes("klan uchun kod") ||
+    t.includes("clan kod") ||
+    t.includes("klan kod")
+  );
+}
+
 // ==========================================
 // 9. TIZIMLI PROMPT & AI JAVOB GENERATSIYASI
 // ==========================================
@@ -912,6 +948,11 @@ REAL VAQT VA SANA (O'ZBEKISTON / TOSHKENT):
 - Bugungi sana va kun: ${uzTime.date}
 - Agar foydalanuvchi soat necha bo'lganini yoki bugun qaysi kun ekanligini so'rasa, aynan shu O'zbekiston vaqtini ayting!
 ${weatherInfo}
+MULOQOT VA SALOMLASHISH QOIDALARI:
+- Hech qachon javoblaringizni robotic yoki takroriy salomlashuvlar (masalan, har safar 'Salom!', 'Assalomu alaykum!' deb boshlash) bilan boshlamang. Faqatgina foydalanuvchi o'zi birinchi bo'lib salomlashgan bo'lsa (masalan: 'salom', 'assalomu alaykum'), o'shanda salomlashing.
+- Agar foydalanuvchi salomlashmagan bo'lsa, suhbatni to'g'ridan-to'g'ri savolga javob berishdan boshlang.
+- Vaqt yoki ob-havo ma'lumotlarini faqat foydalanuvchi so'ragandagina javobga qo'shing, so'ramasa o'zingizdan o'zingiz qo'shmang.
+
 GURUH QOIDALARI:
 1. CLAN KODI: Faqat guruh a'zolari so'raganida faol Clan kodini ayting: "${clanCode}".
 2. O'ZBEKISTON BOZORLARI NARXI VA DO'KONLARI:
@@ -922,7 +963,7 @@ GURUH QOIDALARI:
      * 🔗 Xarid qidiruv havolalari (masalan: Uzum Market: https://uzum.uz/uz/search?q=..., OLX: https://www.olx.uz/d/oz/q-.../)
 3. OB-HAVO MA'LUMOTI: Andijon yoki so'ralgan shahar bo'yicha berilgan real harorat va havo holatini aniq, tushunarli qilib ayting.
 4. MA'LUMOT BERISH: Agar ma'lumot so'ralsa, qisqa, aniq, tushunarli va lo'nda qilib, asosiy jihatlarini emojilar bilan yoritib bering.
-5. EGASI HAQIDA (Faqat so'ralganda): Egasi — 14 yoshda, Andijon Shahrixon 2-maktab 9-sinf, KING SCHOOL'da Bobur Vahobov (UZMIND) o'quvchisi, dasturchi. Telefon raqamlarini bermang!
+5. EGASI (ADMIN) HAQIDA: Egasi — 15 yoshda, Andijon Shahrixon 2-maktab 9-sinf, KING SCHOOL'da Bobur Vahobov (UZMIND) o'quvchisi, dasturchi. Agar foydalanuvchilar egasi yoki admin haqida so'rasa, mutlaqo har doim birinchi bo'lib: "U hozir band, chunki dam olish vaqtida" deb ayting, keyin boshqa ma'lumotlarni yozing. Telefon raqamlarini bermang!
 6. MULOQOT: Xuddi haqiqiy do'stona insondek samimiy va jonli gaplashing.
 `;
   } else {
@@ -935,6 +976,11 @@ REAL VAQT VA SANA (O'ZBEKISTON / TOSHKENT):
 - Bugungi sana va kun: ${uzTime.date}
 - Agar foydalanuvchi soat necha bo'lganini yoki bugun qaysi kun ekanligini so'rasa, aynan shu O'zbekiston vaqtini ayting!
 ${weatherInfo}
+MULOQOT VA SALOMLASHISH QOIDALARI:
+- Hech qachon javoblaringizni robotic yoki takroriy salomlashuvlar (masalan, har safar 'Salom!', 'Assalomu alaykum!' deb boshlash) bilan boshlamang. Faqatgina foydalanuvchi o'zi birinchi bo'lib salomlashgan bo'lsa (masalan: 'salom', 'assalomu alaykum'), o'shanda salomlashing.
+- Agar foydalanuvchi salomlashmagan bo'lsa, suhbatni to'g'ridan-to'g'ri savolga javob berishdan boshlang.
+- Vaqt yoki ob-havo ma'lumotlarini faqat foydalanuvchi so'ragandagina javobga qo'shing, so'ramasa o'zingizdan o'zingiz qo'shmang.
+
 SHAXSIY CHAT QOIDALARI (MUHIM):
 1. CLAN KODI HAQIDA UMUMAN GAPIRMANG: Shaxsiy chatlarda Clan kodi haqida hech narsa yozmang va "guruhdan olasiz" degan gaplarni ham mutlaqo ishlatmang.
 2. ISMNI DOIMIY TAKRORLAMANG: Har gapda "Men falonchining assistentiman" deb robotdek gapirmang. Haqiqiy inson suhbatlashayotgandek tabiiy gaplashing.
@@ -949,13 +995,32 @@ SHAXSIY CHAT QOIDALARI (MUHIM):
        - OLX.uz: https://www.olx.uz/d/oz/q-{nomi}/
        - Asaxiy: https://asaxiy.uz/product?key={nomi}
 5. MA'LUMOT SO'RASHSA: U haqida qisqacha, aniq, tushunarli va lo'nda qilib barcha muhim xususiyatlarini yozing.
-6. EGASI HAQIDA (Faqat so'ralgandagina): Egasi — 14 yoshda, Andijon viloyati Shahrixon tumani 2-maktab 9-sinf o'quvchisi hamda KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, dasturchi. Telefon raqamlarini bermang!
+6. EGASI (ADMIN) HAQIDA: Egasi — 15 yoshda, Andijon viloyati Shahrixon tumani 2-maktab 9-sinf o'quvchisi hamda KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, dasturchi. Agar foydalanuvchilar egasi yoki admin haqida so'rasa, mutlaqo har doim birinchi bo'lib: "U hozir band, chunki dam olish vaqtida" deb ayting, keyin boshqa ma'lumotlarni yozing. Telefon raqamlarini bermang!
 7. DO'STONA RUH: Foydalanuvchi bilan o'ta samimiy, do'stona va tezkor muloqot qiling.
 `;
   }
 }
 
-async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin = false, queryTextForWeather = "") {
+const chatMemory = new Map();
+
+function getChatHistory(chatId) {
+  if (!chatId) return [];
+  if (!chatMemory.has(chatId)) {
+    chatMemory.set(chatId, []);
+  }
+  return chatMemory.get(chatId);
+}
+
+function addMessageToMemory(chatId, role, text) {
+  if (!chatId) return;
+  const history = getChatHistory(chatId);
+  history.push({ role, parts: [{ text }] });
+  if (history.length > 12) {
+    history.splice(0, 2);
+  }
+}
+
+async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin = false, queryTextForWeather = "", chatId = null) {
   let lastError = null;
   let weatherContext = "";
 
@@ -965,7 +1030,14 @@ async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin =
   }
 
   const prompt = getSystemPrompt(isGroup, userIsAdmin, weatherContext);
-  const contents = Array.isArray(contentPayload) ? contentPayload : [contentPayload];
+  let contents = [];
+
+  if (chatId && typeof contentPayload === "string") {
+    addMessageToMemory(chatId, "user", contentPayload);
+    contents = [...getChatHistory(chatId)];
+  } else {
+    contents = Array.isArray(contentPayload) ? contentPayload : [contentPayload];
+  }
 
   for (const modelName of AI_MODELS) {
     try {
@@ -980,7 +1052,11 @@ async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin =
       });
 
       if (response && response.text) {
-        return response.text;
+        const textResponse = response.text;
+        if (chatId && typeof contentPayload === "string") {
+          addMessageToMemory(chatId, "model", textResponse);
+        }
+        return textResponse;
       }
     } catch (err) {
       lastError = err;
@@ -989,7 +1065,7 @@ async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin =
   }
 
   console.error("[AI Modellar xatolik berdi]:", lastError);
-  return "Salom! Xabaringizni oldim. Hozir bir oz bandroq edim, tez orada to'liqroq javob yozaman! 😊";
+  return "Hozir bir oz bandroq edim, tez orada to'liqroq javob yozaman! 😊";
 }
 
 function startTypingIndicator(ctx, isBusiness = false) {
@@ -1216,7 +1292,7 @@ bot.on("business_message", async (ctx) => {
       }
 
       console.log(`[Business Matn][${senderName}]: ${messageText}`);
-      const aiAnswer = await generateAiResponse(messageText, false, userIsAdmin, messageText);
+      const aiAnswer = await generateAiResponse(messageText, false, userIsAdmin, messageText, ctx.chat.id);
 
       await ctx.reply(aiAnswer, {
         business_connection_id: ctx.businessMessage.business_connection_id,
@@ -1410,8 +1486,32 @@ bot.command(["rasm", "image", "draw"], async (ctx) => {
 bot.command(["kod", "clankod", "setkod"], async (ctx) => {
   const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
   const userIsAdmin = isAdmin(ctx);
-  const text = ctx.message.text.trim();
+  const text = ctx.message.text ? ctx.message.text.trim() : "";
   const parts = text.split(/\s+/);
+  
+  const photo = ctx.message.photo || ctx.message.reply_to_message?.photo;
+
+  if (userIsAdmin && (photo && photo.length > 0)) {
+    const highestPhoto = photo[photo.length - 1];
+    setClanPhoto(highestPhoto.file_id);
+
+    const codeText = parts.length > 1 ? parts.slice(1).join(" ") : "";
+    if (codeText) {
+      setClanCode(codeText);
+    }
+
+    await ctx.reply(
+      `✅ *Assalomu alaykum Abdulloh aka!*\n\n📸 *Clan kodi uchun yangi rasm saqlandi!*\n\nEndi guruhda kimdir "clan uchun kod" deb yozsa, ushbu rasm va kod (${codeText || getClanCode()}) yuboriladi! 🚀`,
+      {
+        parse_mode: "Markdown",
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+          allow_sending_without_reply: true,
+        },
+      }
+    );
+    return;
+  }
 
   if (parts.length > 1) {
     if (userIsAdmin) {
@@ -1443,28 +1543,54 @@ bot.command(["kod", "clankod", "setkod"], async (ctx) => {
   }
 
   if (!isGroup) {
-    await ctx.reply("Bu buyruq faqat rasmiy guruhda ishlaydi. 😊", {
-      reply_parameters: {
-        message_id: ctx.message.message_id,
-        allow_sending_without_reply: true,
-      },
-    });
+    const currentCode = getClanCode();
+    const currentPhoto = getClanPhoto();
+    if (currentPhoto) {
+      await ctx.replyWithPhoto(currentPhoto, {
+        caption: `🎮 *Hozirgi Clan kodi:* \`${currentCode}\`\n\nMarhamat, kodingizdan foydalanib clanga qo'shilishingiz mumkin! 🔥`,
+        parse_mode: "Markdown",
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+          allow_sending_without_reply: true,
+        },
+      });
+    } else {
+      await ctx.reply(`🎮 *Hozirgi Clan kodi:* \`${currentCode}\`\n\nMarhamat, kodingizdan foydalanib clanga qo'shilishingiz mumkin! 🔥`, {
+        parse_mode: "Markdown",
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+          allow_sending_without_reply: true,
+        },
+      });
+    }
     return;
   }
 
   const currentCode = getClanCode();
-  await ctx.reply(
-    `🎮 *Hozirgi Clan kodi:* \`${currentCode}\`\n\n` +
-    `Marhamat, kodingizdan foydalanib clanga qo'shilishingiz mumkin! 🔥\n` +
-    `_(Kodni faqat admin o'zgartira oladi)_`,
-    {
+  const currentPhoto = getClanPhoto();
+  if (currentPhoto) {
+    await ctx.replyWithPhoto(currentPhoto, {
+      caption: `🎮 *Hozirgi Clan kodi:* \`${currentCode}\`\n\nMarhamat, kodingizdan foydalanib clanga qo'shilishingiz mumkin! 🔥`,
       parse_mode: "Markdown",
       reply_parameters: {
         message_id: ctx.message.message_id,
         allow_sending_without_reply: true,
       },
-    }
-  );
+    });
+  } else {
+    await ctx.reply(
+      `🎮 *Hozirgi Clan kodi:* \`${currentCode}\`\n\n` +
+      `Marhamat, kodingizdan foydalanib clanga qo'shilishingiz mumkin! 🔥\n` +
+      `_(Kodni faqat admin o'zgartira oladi)_`,
+      {
+        parse_mode: "Markdown",
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+          allow_sending_without_reply: true,
+        },
+      }
+    );
+  }
 });
 
 // /about buyrug'i
@@ -1472,7 +1598,7 @@ bot.command(["about", "portfolio", "info", "abdulloh"], async (ctx) => {
   const infoText = 
 `👨‍💻 *Abdulloh Abdug'aniyev haqida:*
 
-👤 *Yoshi:* 14 yoshda
+👤 *Yoshi:* 15 yoshda
 📍 *Manzil:* Andijon viloyati, Shahrixon tumani
 🏫 *Maktab:* 2-maktab, 9-sinf
 🎓 *IT Ta'limi:* KING SCHOOL (*Bobur Vahobov / UZMIND* o'quvchisi)
@@ -1692,6 +1818,31 @@ bot.on("message:text", async (ctx) => {
     return;
   }
 
+  // Clan kodi so'rovi - Guruhda ham, lichkada ham ishlaydi (hech qanday botni tilga olish shart emas)
+  if (isClanCodeRequest(messageText)) {
+    const clanPhoto = getClanPhoto();
+    const clanCode = getClanCode();
+    if (clanPhoto) {
+      await ctx.replyWithPhoto(clanPhoto, {
+        caption: `🎮 *Clan kodi:* \`${clanCode}\``,
+        parse_mode: "Markdown",
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+          allow_sending_without_reply: true,
+        },
+      });
+    } else {
+      await ctx.reply(`🎮 *Clan kodi:* \`${clanCode}\``, {
+        parse_mode: "Markdown",
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+          allow_sending_without_reply: true,
+        },
+      });
+    }
+    return;
+  }
+
   if (isGroup) {
     const isReplyToBot = replyTo && replyTo.from?.id === ctx.me?.id;
     const isReplyToPhoto = replyTo && replyTo.photo && replyTo.photo.length > 0;
@@ -1777,7 +1928,7 @@ bot.on("message:text", async (ctx) => {
       promptInput = messageText;
     }
 
-    const aiAnswer = await generateAiResponse(promptInput, isGroup, userIsAdmin, messageText);
+    const aiAnswer = await generateAiResponse(promptInput, isGroup, userIsAdmin, messageText, ctx.chat.id);
 
     await ctx.reply(aiAnswer, {
       reply_parameters: {
