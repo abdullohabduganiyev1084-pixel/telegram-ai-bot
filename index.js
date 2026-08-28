@@ -1309,6 +1309,36 @@ bot.on("business_message", async (ctx) => {
   }
 });
 
+const adminState = new Map();
+
+// /clanrasmi buyrug'i - Admin uchun clan rasmini o'rnatish
+bot.command("clanrasmi", async (ctx) => {
+  if (!isAdmin(ctx)) {
+    await ctx.reply("⚠️ Kechirasiz, bu buyruq faqat bot administratori (Abdulloh) uchun ochiq!", {
+      reply_parameters: {
+        message_id: ctx.message.message_id,
+        allow_sending_without_reply: true,
+      },
+    });
+    return;
+  }
+
+  const userId = ctx.from?.id;
+  if (userId) {
+    adminState.set(userId, "WAITING_CLAN_PHOTO");
+    await ctx.reply(
+      "📷 *Abdulloh aka, iltimos, clan kodi uchun yangi rasmni yuboring!*\n\n_Rasm kelganidan so'ng u guruhlar uchun clan kodi rasmi etib sozlanadi. 😊_",
+      {
+        parse_mode: "Markdown",
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+          allow_sending_without_reply: true,
+        },
+      }
+    );
+  }
+});
+
 // Maxsus buyruqlar: /start, /admin, /musiqa, /rasm, /kod, /about
 bot.command("start", async (ctx) => {
   const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
@@ -1705,6 +1735,25 @@ bot.on("message:photo", async (ctx) => {
   const botUsername = ctx.me?.username?.toLowerCase() || "mrx_uzbot";
   const senderName = ctx.from?.first_name || "Foydalanuvchi";
   const userIsAdmin = isAdmin(ctx);
+
+  const senderId = ctx.from?.id;
+  if (senderId && isAdmin(ctx) && adminState.get(senderId) === "WAITING_CLAN_PHOTO") {
+    const highestPhoto = photo[photo.length - 1];
+    setClanPhoto(highestPhoto.file_id);
+    adminState.delete(senderId);
+
+    await ctx.reply(
+      "✅ *Muvaffaqiyatli saqlandi!*\n\n📸 Yangi klan rasmi saqlandi. Endi guruhda kimdir klan kodini so'rasa, ushbu rasm taqdim etiladi! 🚀",
+      {
+        parse_mode: "Markdown",
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+          allow_sending_without_reply: true,
+        },
+      }
+    );
+    return;
+  }
 
   if (isGroup) {
     const isReplyToBot = replyTo?.from?.id === ctx.me?.id;
