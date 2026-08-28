@@ -42,7 +42,7 @@ app.listen(PORT, () => {
 });
 
 // ==========================================
-// 2. CLAN KODI BOSHQARUVI (Dinamik saqlash)
+// 2. CLAN KODI BOSHQARUVI (Faqat guruhlar uchun)
 // ==========================================
 const CLAN_DATA_FILE = path.join(process.cwd(), "clan_data.json");
 
@@ -50,12 +50,12 @@ function getClanCode() {
   try {
     if (fs.existsSync(CLAN_DATA_FILE)) {
       const data = JSON.parse(fs.readFileSync(CLAN_DATA_FILE, "utf-8"));
-      return data.clan_code || "Hozircha kod belgilanmagan";
+      return data.clan_code || "7777";
     }
   } catch (e) {
     console.error("Clan kodini o'qishda xatolik:", e);
   }
-  return "Hozircha kod belgilanmagan";
+  return "7777";
 }
 
 function setClanCode(newCode) {
@@ -72,7 +72,6 @@ function setClanCode(newCode) {
   }
 }
 
-// Boshlang'ich fayl mavjud bo'lmasa yaratib qo'yish
 if (!fs.existsSync(CLAN_DATA_FILE)) {
   setClanCode("7777");
 }
@@ -90,7 +89,7 @@ if (!botToken || !geminiApiKey) {
 const bot = new Bot(botToken);
 const ai = new GoogleGenAI({ apiKey: geminiApiKey });
 
-// ENG TEZKOR VA SINOVDAN O'TGAN AI MODELLAR (700ms - 1.5s)
+// ENG TEZKOR VA MULTIMODAL SINOVDAN O'TGAN MODELLAR
 const AI_MODELS = [
   "gemini-3.1-flash-lite",
   "gemini-3.5-flash-lite",
@@ -98,47 +97,56 @@ const AI_MODELS = [
   "gemini-3-flash-preview",
 ];
 
-// AI tizimli ko'rsatmasi (Dinamik Clan kodi bilan)
-function getSystemPrompt() {
-  const currentClanCode = getClanCode();
-  return `
-Siz Abdullohning (Telegram: @ABDULLOH_ABDUGANIYEV_11, Tel: +998939881477, Bot: @mrx_uzbot) shaxsiy eng tezkor, aqlli va samimiy AI assistentisiz.
+// Qiziqarli emojilar to'plami (Stiker va emojilarga javob qaytarish uchun)
+const FUN_EMOJIS = ["🔥", "⚡️", "😎", "🚀", "✨", "🤝", "🙌", "⚽️", "🎮", "💡", "🎯", "👏", "🏆"];
 
-HOZIRGI FAOL CLAN KODI: "${currentClanCode}"
-
-MUHIM QOIDALAR:
-1. CLAN KODI SO'RASHSA ("clanga kod ber", "kod nima", "kod kerak", "clan kodi", "klan kodi" va h.k.):
-   - Foydalanuvchiga hozirgi faol Clan kodini darhol ayting: "${currentClanCode}"
-   - Misol uchun: "🎮 Clan kodi: ${currentClanCode}\n\nMarhamat, kodingiz orqali qo'shilishingiz mumkin! 🔥"
-
-2. FOYDALANUVCHI SAVOLLARIGA:
-   - Foydalanuvchi biror mavzuda savol bersa (o'yinlar, DLS, futbol, dasturlash, texnologiya, kino, hayotiy masalalar):
-     * Xabarni diqqat bilan o'qib, unga TO'LIQ, ANIQ, CHROYLI va emojilar (⚽️, 🎮, 🔥, 🚀, 💡, 😊) bilan darhol tezkor javob qaytaring.
-
-3. ABDULLOH HAQIDA SO'RASHSA YOKI "SEN KIMSAN" DEYISHSA (QISQA VA LO'NDA):
-   - Abdulloh haqida ortiqcha uzun doston yozmasdan, QISQA va londa ma'lumot bering:
-     * Abdulloh Abdug'aniyev — 14 yoshda, Shahrixon 2-maktab 9-sinf o'quvchisi. KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-stack dasturchi (Node.js, Telegram botlar, veb-saytlar, AI).
-     * Aloqa: @ABDULLOH_ABDUGANIYEV_11 | Tel: +998939881477
-     * Qisqa tarzda qanday yordam bera olishingizni so'rang.
-
-4. JAVOB BERISH TEZLIGI:
-   - Juda tez, lo'nda va ravon insoniy suhbat shaklida javob bering.
-`;
+function getRandomEmoji() {
+  return FUN_EMOJIS[Math.floor(Math.random() * FUN_EMOJIS.length)];
 }
 
-// AI javob generatsiya qilish funksiyasi (Eng tezkor konfiguratsiya)
-async function generateAiResponse(userMessage) {
+// Tizimli Prompt generatsiyasi (Guruh yoki Shaxsiy chat holatiga qarab)
+function getSystemPrompt(isGroup = false) {
+  const clanCode = getClanCode();
+
+  if (isGroup) {
+    return `
+Siz Abdullohning (Telegram: @ABDULLOH_ABDUGANIYEV_11, Tel: +998939881477, Bot: @mrx_uzbot) shaxsiy eng tezkor, aqlli va samimiy AI assistentisiz.
+
+GURUHDA ISHLASH QOIDALARI:
+1. CLAN KODI: Faqat guruhda so'ralganda faol Clan kodini ayting: "${clanCode}".
+2. FOYDALANUVCHILAR SAVOLLARIGA: O'yinlar (DLS, futbol), texnologiya, dasturlash, hayotiy savollar, rasm va fayllar tahlili bo'yicha juda to'liq, chuqur, aniq va chiroyli emojilar bilan javob qaytaring.
+3. ABDULLOH HAQIDA: Abdulloh Abdug'aniyev — 14 yoshda, Shahrixon 2-maktab 9-sinf, KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-stack dasturchi (Node.js, Telegram botlar, veb-saytlar, AI). Aloqa: @ABDULLOH_ABDUGANIYEV_11 | Tel: +998939881477.
+4. Javoblaringiz do'stona, ravon va professional bo'lsin.
+`;
+  } else {
+    return `
+Siz Abdullohning (Telegram: @ABDULLOH_ABDUGANIYEV_11, Tel: +998939881477, Bot: @mrx_uzbot) shaxsiy eng tezkor, aqlli va samimiy AI assistentisiz.
+
+SHAXSIY CHAT (DIRECT/BUSINESS) QOIDALARI:
+1. MUHIM: Shaxsiy chatlarda Clan kodi haqida UMUMAN gapirmang va Clan kodini tashlamang! Agar clan kodi so'ralsa, "Clan kodi faqat rasmiy guruhimizda beriladi! Guruhda /kod deb yozishingiz mumkin." deb ayting.
+2. RASM VA FAYLLAR TAHLILI: Foydalanuvchi qanday rasm (butsi, mashina, texnika, buyum, tabiat) yoki fayl tashlasa, uni sinchiklab ko'rib, u haqida juda to'liq, qiziqarli va professional ma'lumot bering.
+3. HAR QANDAY SAVOLGA: To'liq, aniq va chiroyli emojilar bilan sifatli javob qaytaring.
+4. ABDULLOH HAQIDA (QISQA): Abdulloh Abdug'aniyev — 14 yoshda, Shahrixon 2-maktab 9-sinf, KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-stack dasturchi. Aloqa: @ABDULLOH_ABDUGANIYEV_11 | Tel: +998939881477.
+`;
+  }
+}
+
+// AI javob generatsiya qilish funksiyasi (Matn, Rasm va Fayllar bilan)
+async function generateAiResponse(contentPayload, isGroup = false) {
   let lastError = null;
-  const prompt = getSystemPrompt();
+  const prompt = getSystemPrompt(isGroup);
+
+  // Payload matn yoki multipart (rasm/fayl) bo'lishi mumkin
+  const contents = Array.isArray(contentPayload) ? contentPayload : [contentPayload];
 
   for (const modelName of AI_MODELS) {
     try {
       const response = await ai.models.generateContent({
         model: modelName,
-        contents: userMessage,
+        contents: contents,
         config: {
           systemInstruction: prompt,
-          maxOutputTokens: 450,
+          maxOutputTokens: 600,
           temperature: 0.7,
         },
       });
@@ -153,10 +161,8 @@ async function generateAiResponse(userMessage) {
   }
 
   console.error("[AI Modellar xatolik berdi]:", lastError);
-  const clanCode = getClanCode();
   return (
     `Assalomu alaykum! Xabaringiz qabul qilindi. 😊\n\n` +
-    `🎮 Clan kodi: ${clanCode}\n\n` +
     `Abdulloh hozir ish jarayonida, tez orada o'zi ham aloqaga chiqadi!\n` +
     `📞 Tel: +998939881477 | 📩 Telegram: @ABDULLOH_ABDUGANIYEV_11`
   );
@@ -188,34 +194,22 @@ function startTypingIndicator(ctx, isBusiness = false) {
   };
 }
 
-// Guruhda xabar Abdullohga yoki botga tegishli ekanligini aniqlash
-function isRelevantGroupMessage(ctx) {
-  const text = (ctx.message?.text || "").toLowerCase();
-  const botUsername = ctx.me?.username?.toLowerCase() || "mrx_uzbot";
-  const replyTo = ctx.message?.reply_to_message;
-
-  // 1. Agar guruhda botga yoki Abdullohga mention qilingan bo'lsa
-  if (text.includes(`@${botUsername}`) || text.includes("@abdulloh_abduganiyev_11")) {
-    return true;
+// Telegramdan faylni yuklab olib Base64 ga o'girish helperi
+async function downloadTelegramFileAsBase64(ctx, fileId) {
+  try {
+    const fileInfo = await ctx.api.getFile(fileId);
+    const fileUrl = `https://api.telegram.org/file/bot${botToken}/${fileInfo.file_path}`;
+    const response = await fetch(fileUrl);
+    const arrayBuffer = await response.arrayBuffer();
+    const base64Data = Buffer.from(arrayBuffer).toString("base64");
+    return {
+      base64Data,
+      filePath: fileInfo.file_path,
+    };
+  } catch (err) {
+    console.error("[Telegram File Download Error]:", err.message);
+    return null;
   }
-
-  // 2. Agar guruhda biror kishi biror xabarga REPLY qilgan bo'lsa
-  if (replyTo) {
-    return true;
-  }
-
-  // 3. Clan va boshqa kalit so'zlar
-  const keywords = [
-    "ai", "bot", "abdulloh", "abduganiyev", "abdug'aniyev", "dls", "uzmind", "bobur", "vahobov",
-    "sen kimsan", "kimsan", "salom", "assalomu", "dasturchi", "bot yasash", "sayt", "portfolio",
-    "yordam", "narx", "loyiha", "king school", "kim bu", "admin", "shahrixon", "?", "qale", "qandaysan", "gr",
-    "kod", "clanga kod", "clan kodi", "klan kodi", "klanga kod", "kod ber", "kod nima", "kod kerak", "kod bering"
-  ];
-  if (keywords.some((kw) => text.includes(kw))) {
-    return true;
-  }
-
-  return false;
 }
 
 // ==========================================
@@ -227,60 +221,85 @@ bot.on("business_connection", (ctx) => {
   console.log(`[Business Connection] Ulanish o'rnatildi! ID: ${ctx.businessConnection.id}`);
 });
 
-// Telegram Business xabarlarini qabul qilish va AI orqali javob berish
+// Telegram Business xabarlarini qabul qilish (Matn, Rasm, Stiker)
 bot.on("business_message", async (ctx) => {
   const fromId = ctx.businessMessage.from?.id;
   const chatId = ctx.businessMessage.chat?.id;
   const messageText = ctx.businessMessage.text;
+  const photo = ctx.businessMessage.photo;
   const sticker = ctx.businessMessage.sticker;
+  const caption = ctx.businessMessage.caption;
   const senderName = ctx.businessMessage.from?.first_name || "Foydalanuvchi";
-
-  if (!messageText && !sticker) return;
 
   // Agar xabarni Abdulloh o'zi yozgan bo'lsa (fromId !== chatId), bot javob bermaydi
   if (fromId !== chatId) {
-    console.log(`[Abdulloh o'zi yozdi -> Chat ID: ${chatId}]: "${messageText || '[Stiker]'}" -> Bot javob bermaydi.`);
     return;
   }
 
-  const chatTitle = `[Business][${senderName}]`;
   const stopTyping = startTypingIndicator(ctx, true);
 
   try {
-    let promptInput = "";
-
+    // 1. STIKER KELGANDA: Boshqacha stiker/emoji va xabar bilan javob qaytarish
     if (sticker) {
-      console.log(`${chatTitle} stiker yubordi: ${sticker.emoji || "sticker"}`);
+      const emoji = getRandomEmoji();
+      await ctx.reply(
+        `${emoji} Salom ${senderName}! Sizga qanday yordam bera olaman? Agar biror savolingiz, tahlil qilish uchun rasm yoki faylingiz bo'lsa bemalol yuboring! 😊`,
+        {
+          business_connection_id: ctx.businessMessage.business_connection_id,
+          reply_parameters: {
+            message_id: ctx.businessMessage.message_id,
+            allow_sending_without_reply: true,
+          },
+        }
+      );
+      return;
+    }
 
-      try {
-        await ctx.replyWithSticker(sticker.file_id, {
+    // 2. RASM KELGANDA: Rasmni ko'rib, tahlil qilish (Vision)
+    if (photo && photo.length > 0) {
+      console.log(`[Business Rasm keldi -> ${senderName}]`);
+      const highestPhoto = photo[photo.length - 1];
+      const downloaded = await downloadTelegramFileAsBase64(ctx, highestPhoto.file_id);
+
+      if (downloaded) {
+        const userPrompt = caption || "Ushbu rasmni sinchiklab tahlil qiling. Undagi buyum (masalan: butsi, mashina, kiyim, texnika yoki har qanday narsa) haqida juda to'liq, qiziqarli va professional ma'lumot bering.";
+        const payload = [
+          {
+            inlineData: {
+              data: downloaded.base64Data,
+              mimeType: "image/jpeg",
+            },
+          },
+          userPrompt,
+        ];
+
+        const aiAnswer = await generateAiResponse(payload, false);
+        await ctx.reply(aiAnswer, {
           business_connection_id: ctx.businessMessage.business_connection_id,
           reply_parameters: {
             message_id: ctx.businessMessage.message_id,
             allow_sending_without_reply: true,
           },
         });
-      } catch (err) {}
-
-      promptInput = `Foydalanuvchi (${senderName}) sizga Telegram stikeri yubordi (${sticker.emoji || "😊"}). Unga quvnoq va samimiy qisqa javob qaytarib, qanday yordam bera olishingizni so'rang.`;
-    } else {
-      console.log(`${chatTitle}: ${messageText}`);
-      promptInput = messageText;
+        return;
+      }
     }
 
-    const aiAnswer = await generateAiResponse(promptInput);
+    // 3. MATN KELGANDA:
+    if (messageText) {
+      console.log(`[Business Matn][${senderName}]: ${messageText}`);
+      const aiAnswer = await generateAiResponse(messageText, false);
 
-    await ctx.reply(aiAnswer, {
-      business_connection_id: ctx.businessMessage.business_connection_id,
-      reply_parameters: {
-        message_id: ctx.businessMessage.message_id,
-        allow_sending_without_reply: true,
-      },
-    });
-
-    console.log(`[AI Javob -> ${senderName}]: ${aiAnswer}`);
+      await ctx.reply(aiAnswer, {
+        business_connection_id: ctx.businessMessage.business_connection_id,
+        reply_parameters: {
+          message_id: ctx.businessMessage.message_id,
+          allow_sending_without_reply: true,
+        },
+      });
+    }
   } catch (error) {
-    console.error("[Business Reply Error]:", error?.message || error);
+    console.error("[Business Error]:", error?.message || error);
   } finally {
     stopTyping();
   }
@@ -288,31 +307,33 @@ bot.on("business_message", async (ctx) => {
 
 // Maxsus buyruqlar: /start, /about, /kod
 bot.command("start", async (ctx) => {
-  await ctx.reply(
-    "👋 Assalomu alaykum! Men Abdulloh Abdug'aniyevning shaxsiy aqlli AI assistentiman.\n\n" +
-    "Savollaringiz bo'lsa bemalol yozishingiz, Clan kodini bilish/o'zgartirish uchun /kod yoki ma'lumot olish uchun /about buyrug'ini yuborishingiz mumkin! 🚀",
-    {
-      reply_parameters: {
-        message_id: ctx.message.message_id,
-        allow_sending_without_reply: true,
-      },
-    }
-  );
+  const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
+  const helpText = isGroup
+    ? "👋 Assalomu alaykum! Men Abdullohning shaxsiy AI assistentiman.\n\nGuruhda menga Reply qilib savol berishingiz, rasm yoki fayl tashlab tahlil qilishingiz yoki /kod buyrug'i orqali Clan kodini olishingiz mumkin! 🚀"
+    : "👋 Assalomu alaykum! Men Abdulloh Abdug'aniyevning shaxsiy aqlli AI assistentiman.\n\nSavollaringiz bo'lsa bemalol yozishingiz, rasm yoki fayl yuborib tahlil qildirishingiz mumkin! 🚀";
+
+  await ctx.reply(helpText, {
+    reply_parameters: {
+      message_id: ctx.message.message_id,
+      allow_sending_without_reply: true,
+    },
+  });
 });
 
-// /kod va /setkod buyrug'i - Kodni ko'rish yoki Yangilash
+// /kod buyrug'i - Faqat guruhlarda ishlaydi yoki o'rnatiladi
 bot.command(["kod", "clankod", "setkod"], async (ctx) => {
+  const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
   const text = ctx.message.text.trim();
   const parts = text.split(/\s+/);
 
-  // Agar /kod <yangi_kod> yozilgan bo'lsa (Masalan: /kod 1234 yoki /kod CLAN_2026)
+  // Agar yangi kod o'rnatilayotgan bo'lsa (/kod 7777)
   if (parts.length > 1) {
     const newCode = parts.slice(1).join(" ");
     setClanCode(newCode);
     await ctx.reply(
       `✅ *Clan kodi muvaffaqiyatli saqlandi!*\n\n` +
       `🔑 *Yangi Clan kodi:* \`${newCode}\`\n\n` +
-      `Endi guruhda yoki shaxsiyda kimdir clan kodi haqida so'rasa, bot ushbu yangi kodni avtomatik taqdim etadi! 🔥`,
+      `Endi guruhda kimdir kod so'rasa, bot ushbu yangi kodni taqdim etadi! 🔥`,
       {
         parse_mode: "Markdown",
         reply_parameters: {
@@ -324,12 +345,27 @@ bot.command(["kod", "clankod", "setkod"], async (ctx) => {
     return;
   }
 
-  // Agar shunchaki /kod deb yozilgan bo'lsa
+  // Agar shaxsiy chatda /kod deb yozilsa
+  if (!isGroup) {
+    await ctx.reply(
+      `🔒 Clan kodi faqat rasmiy guruhimizda beriladi!\n\nGuruhga kirib \`/kod\` deb yozishingiz yoki guruhda so'rashingiz mumkin. 😊`,
+      {
+        parse_mode: "Markdown",
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+          allow_sending_without_reply: true,
+        },
+      }
+    );
+    return;
+  }
+
+  // Guruhda /kod deb yozilsa
   const currentCode = getClanCode();
   await ctx.reply(
     `🎮 *Hozirgi Clan kodi:* \`${currentCode}\`\n\n` +
-    `✏️ *Kodni o'zgartirish uchun:* \`/kod <yangi_kod>\` deb yozing.\n` +
-    `_Masalan:_ \`/kod 7777\` yoki \`/kod MY_CLAN\``,
+    `Marhamat, kodingizdan foydalanib clanga qo'shilishingiz mumkin! 🔥\n` +
+    `_(Kodni yangilash uchun: \`/kod <yangi_kod>\` deb yozing)_`,
     {
       parse_mode: "Markdown",
       reply_parameters: {
@@ -364,43 +400,145 @@ _Xabaringizni qoldiring, Abdulloh tez orada aloqaga chiqadi!_ ✨`;
   });
 });
 
-// Stiker kelganda (Direct chat yoki Guruhda)
+// Stiker kelganda (Direct chat yoki Guruhda botga Reply qilinganda)
 bot.on("message:sticker", async (ctx) => {
   const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
+  const replyTo = ctx.message.reply_to_message;
   const senderId = ctx.from?.id;
   const senderName = ctx.from?.first_name || "Foydalanuvchi";
-  const sticker = ctx.message.sticker;
 
   if (senderId === ctx.me?.id) return;
-  if (isGroup && !ctx.message.reply_to_message) {
+
+  // GURUHDA: Faqat botning xabariga reply qilingan bo'lsa javob beradi!
+  if (isGroup && replyTo?.from?.id !== ctx.me?.id) {
     return;
   }
 
   const stopTyping = startTypingIndicator(ctx, false);
 
   try {
-    try {
-      await ctx.replyWithSticker(sticker.file_id, {
+    const emoji = getRandomEmoji();
+    await ctx.reply(
+      `${emoji} Salom ${senderName}! Sizga qanday yordam bera olaman? Marhamat, bemalol yozing! 😊`,
+      {
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+          allow_sending_without_reply: true,
+        },
+      }
+    );
+  } catch (error) {
+    console.error("[Sticker Handler Error]:", error?.message || error);
+  } finally {
+    stopTyping();
+  }
+});
+
+// Rasm (Photo) kelganda - Vision AI tahlili
+bot.on("message:photo", async (ctx) => {
+  const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
+  const replyTo = ctx.message.reply_to_message;
+  const photo = ctx.message.photo;
+  const caption = ctx.message.caption || "";
+  const botUsername = ctx.me?.username?.toLowerCase() || "mrx_uzbot";
+  const senderName = ctx.from?.first_name || "Foydalanuvchi";
+
+  // GURUHDA: Faqat botga reply qilinganda yoki bot mention qilinganda javob beradi
+  if (isGroup) {
+    const isReplyToBot = replyTo?.from?.id === ctx.me?.id;
+    const isMentioned = caption.toLowerCase().includes(`@${botUsername}`);
+    if (!isReplyToBot && !isMentioned) {
+      return; // Guruhda boshqalarga xalaqit bermaydi
+    }
+  }
+
+  const stopTyping = startTypingIndicator(ctx, false);
+
+  try {
+    console.log(`[Rasm tahlil qilinmoqda -> From: ${senderName}]`);
+    const highestPhoto = photo[photo.length - 1];
+    const downloaded = await downloadTelegramFileAsBase64(ctx, highestPhoto.file_id);
+
+    if (downloaded) {
+      const userPrompt = caption || "Ushbu rasmni sinchiklab tahlil qiling. Undagi buyum (masalan: butsi, mashina, kiyim, texnika yoki har qanday narsa) haqida juda to'liq, qiziqarli, aniq va professional ma'lumot bering.";
+      const payload = [
+        {
+          inlineData: {
+            data: downloaded.base64Data,
+            mimeType: "image/jpeg",
+          },
+        },
+        userPrompt,
+      ];
+
+      const aiAnswer = await generateAiResponse(payload, isGroup);
+
+      await ctx.reply(aiAnswer, {
         reply_parameters: {
           message_id: ctx.message.message_id,
           allow_sending_without_reply: true,
         },
       });
-    } catch (e) {}
 
-    const promptInput = `Foydalanuvchi (${senderName}) sizga Telegram stikeri yubordi (${sticker.emoji || "😊"}). Unga samimiy, quvnoq javob qaytarib, qanday yordam bera olishingizni so'rang.`;
-    const aiAnswer = await generateAiResponse(promptInput);
-
-    await ctx.reply(aiAnswer, {
-      reply_parameters: {
-        message_id: ctx.message.message_id,
-        allow_sending_without_reply: true,
-      },
-    });
-
-    console.log(`[AI Sticker Javob -> ${senderName}]: ${aiAnswer}`);
+      console.log(`[AI Rasm Tahlil Javob -> ${senderName}]`);
+    }
   } catch (error) {
-    console.error("[Sticker Handler Error]:", error?.message || error);
+    console.error("[Photo Vision Error]:", error?.message || error);
+  } finally {
+    stopTyping();
+  }
+});
+
+// Hujjatlar / Fayllar (Document / Text / Code / PDF) kelganda tahlil qilish
+bot.on("message:document", async (ctx) => {
+  const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
+  const replyTo = ctx.message.reply_to_message;
+  const doc = ctx.message.document;
+  const caption = ctx.message.caption || "";
+  const botUsername = ctx.me?.username?.toLowerCase() || "mrx_uzbot";
+  const senderName = ctx.from?.first_name || "Foydalanuvchi";
+
+  if (isGroup) {
+    const isReplyToBot = replyTo?.from?.id === ctx.me?.id;
+    const isMentioned = caption.toLowerCase().includes(`@${botUsername}`);
+    if (!isReplyToBot && !isMentioned) {
+      return;
+    }
+  }
+
+  const stopTyping = startTypingIndicator(ctx, false);
+
+  try {
+    console.log(`[Fayl tahlil qilinmoqda: ${doc.file_name} -> From: ${senderName}]`);
+    const downloaded = await downloadTelegramFileAsBase64(ctx, doc.file_id);
+
+    if (downloaded) {
+      const mime = doc.mime_type || "application/octet-stream";
+      const userPrompt = caption || `Ushbu "${doc.file_name || 'fayl'}" faylini ko'rib chiqib, uning mazmuni haqida to'liq, tushunarli va professional tahlil bering.`;
+
+      const payload = [
+        {
+          inlineData: {
+            data: downloaded.base64Data,
+            mimeType: mime.startsWith("image/") ? mime : "application/pdf",
+          },
+        },
+        userPrompt,
+      ];
+
+      const aiAnswer = await generateAiResponse(payload, isGroup);
+
+      await ctx.reply(aiAnswer, {
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+          allow_sending_without_reply: true,
+        },
+      });
+
+      console.log(`[AI Fayl Tahlil Javob -> ${senderName}]`);
+    }
+  } catch (error) {
+    console.error("[Document Analysis Error]:", error?.message || error);
   } finally {
     stopTyping();
   }
@@ -413,21 +551,27 @@ bot.on("message:text", async (ctx) => {
   const senderId = ctx.from?.id;
   const senderName = ctx.from?.first_name || "Foydalanuvchi";
   const messageText = ctx.message.text;
-
-  console.log(`[Kelgan Xabar][${ctx.chat.type}][Chat: ${ctx.chat.title || senderName}][From: ${senderName}]: "${messageText}"`);
+  const replyTo = ctx.message?.reply_to_message;
+  const botUsername = ctx.me?.username?.toLowerCase() || "mrx_uzbot";
 
   if (senderId === ctx.me?.id) {
     return;
   }
 
-  if (isGroup && !isRelevantGroupMessage(ctx)) {
-    return;
+  // GURUHDA:
+  // "guruhda odamlar bir biri bilan yozganda bot hech qachon yozmasin, qachonki botning habariga reply qilganimizda javob yozsin"
+  if (isGroup) {
+    const isReplyToBot = replyTo && replyTo.from?.id === ctx.me?.id;
+    const isMentioned = messageText.toLowerCase().includes(`@${botUsername}`);
+
+    // Agar botning xabariga reply qilinmagan bo'lsa va bot mention qilinmagan bo'lsa: BOT JIM TURADI!
+    if (!isReplyToBot && !isMentioned) {
+      return;
+    }
   }
 
   const chatContextTitle = isGroup ? `[Guruh: ${ctx.chat.title}]` : "[Direct]";
-  const replyTo = ctx.message?.reply_to_message;
-
-  console.log(`>>> ${chatContextTitle}[${senderName}] ga javob tayyorlanmoqda...`);
+  console.log(`>>> ${chatContextTitle}[${senderName}]: "${messageText}" ga javob tayyorlanmoqda...`);
 
   const stopTyping = startTypingIndicator(ctx, false);
 
@@ -435,18 +579,13 @@ bot.on("message:text", async (ctx) => {
     let promptInput = "";
 
     if (isGroup) {
-      if (replyTo) {
-        const repliedUser = replyTo.from?.first_name || "Foydalanuvchi";
-        const originalText = replyTo.text || replyTo.caption || "[Xabar]";
-        promptInput = `Guruh nomi: "${ctx.chat.title}".\nAvvalgi xabar (${repliedUser}): "${originalText}"\nFoydalanuvchi (${senderName}) bunga reply qilib yozdi: "${messageText}".\nFoydalanuvchining xabariga mos, to'liq, qiziqarli, aniq va xushmuomala javob qaytaring. (Agar clan kodi so'ralsa, kodi: "${getClanCode()}").`;
-      } else {
-        promptInput = `Guruhdagi xabar (${ctx.chat.title}). Foydalanuvchi (${senderName}) yozdi: "${messageText}". Foydalanuvchiga mos, to'liq, qiziqarli va aniq javob bering. (Agar clan kodi so'ralsa, kodi: "${getClanCode()}").`;
-      }
+      const repliedText = replyTo?.text || replyTo?.caption || "[Bot Xabari]";
+      promptInput = `Guruh nomi: "${ctx.chat.title}".\nBotning avvalgi xabari: "${repliedText}"\nFoydalanuvchi (${senderName}) botga reply qilib yozdi: "${messageText}".\nFoydalanuvchining savoliga mos, to'liq, qiziqarli, aniq va xushmuomala javob qaytaring.`;
     } else {
       promptInput = messageText;
     }
 
-    const aiAnswer = await generateAiResponse(promptInput);
+    const aiAnswer = await generateAiResponse(promptInput, isGroup);
 
     await ctx.reply(aiAnswer, {
       reply_parameters: {
@@ -470,7 +609,7 @@ bot.on("channel_post:text", async (ctx) => {
 
   if (postText.toLowerCase().includes(`@${botUsername}`) || postText.toLowerCase().includes("abdulloh")) {
     console.log(`[Kanal Posti: ${ctx.chat.title}]: ${postText}`);
-    const aiAnswer = await generateAiResponse(postText);
+    const aiAnswer = await generateAiResponse(postText, true);
     await ctx.reply(aiAnswer);
   }
 });
