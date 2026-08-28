@@ -47,8 +47,9 @@ const ADMIN_HTML = `<!DOCTYPE html>
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-3">
           <div class="relative">
-            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 p-0.5 shadow-md">
-              <div class="w-full h-full bg-slate-950 rounded-2xl flex items-center justify-center text-xl">👑</div>
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 p-0.5 shadow-md overflow-hidden relative">
+              <img id="adminProfileImg" src="" class="w-full h-full object-cover rounded-2xl hidden" />
+              <div id="adminProfileFallback" class="w-full h-full bg-slate-950 rounded-2xl flex items-center justify-center text-xl">👑</div>
             </div>
             <div class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-slate-950 pulse-dot"></div>
           </div>
@@ -72,17 +73,20 @@ const ADMIN_HTML = `<!DOCTYPE html>
 
     <!-- TABS -->
     <div class="glass-card rounded-2xl p-1.5 flex gap-1 text-xs font-semibold overflow-x-auto">
-      <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn active flex-1 py-2 px-1.5 rounded-xl text-center flex items-center justify-center gap-1 transition-all">
+      <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn active py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 transition-all">
         <i class="fas fa-chart-pie"></i><span>Boshqaruv</span>
       </button>
-      <button onclick="switchTab('clan')" id="tab-clan" class="tab-btn flex-1 py-2 px-1.5 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
+      <button onclick="switchTab('clan')" id="tab-clan" class="tab-btn py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
         <i class="fas fa-key"></i><span>Clan</span>
       </button>
-      <button onclick="switchTab('botinfo')" id="tab-botinfo" class="tab-btn flex-1 py-2 px-1.5 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
+      <button onclick="switchTab('botinfo')" id="tab-botinfo" class="tab-btn py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
         <i class="fas fa-robot"></i><span>Bot</span>
       </button>
-      <button onclick="switchTab('aistudio')" id="tab-aistudio" class="tab-btn flex-1 py-2 px-1.5 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
+      <button onclick="switchTab('aistudio')" id="tab-aistudio" class="tab-btn py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
         <i class="fas fa-wand-magic-sparkles"></i><span>AI Studio</span>
+      </button>
+      <button onclick="switchTab('users')" id="tab-users" class="tab-btn py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
+        <i class="fas fa-users-gear"></i><span>Foydalanuvchilar</span>
       </button>
     </div>
 
@@ -209,8 +213,12 @@ const ADMIN_HTML = `<!DOCTYPE html>
           <label class="text-xs text-slate-300 font-semibold">Bot Tavsifi (Description):</label>
           <textarea id="inputBotDesc" rows="3" placeholder="Bot nimalar qila olishi haqida..." class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500"></textarea>
         </div>
+        <div class="space-y-1.5">
+          <label class="text-xs text-slate-300 font-semibold">Admin Profil Rasmi (Rasm havolasi URL):</label>
+          <input type="text" id="inputAdminAvatar" placeholder="Havola (https://...) kiriting..." class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500" />
+        </div>
         <button id="btnSaveBotInfo" onclick="submitBotInfo()" class="w-full btn-emerald text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-sm shadow-md">
-          <i class="fas fa-save"></i><span>Bot Ma'lumotlarini Saqlash</span>
+          <i class="fas fa-save"></i><span>Bot & Admin Sozlamalarini Saqlash</span>
         </button>
       </div>
 
@@ -302,6 +310,29 @@ const ADMIN_HTML = `<!DOCTYPE html>
       </div>
     </div>
 
+    <!-- TAB 5: USERS -->
+    <div id="view-users" class="space-y-4 tab-content hidden">
+      <div class="glass-card rounded-3xl p-5 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <i class="fas fa-users-gear text-base"></i>
+            </div>
+            <div>
+              <h2 class="font-extrabold text-white text-sm">Foydalanuvchilar</h2>
+              <p class="text-[10px] text-slate-400">Bot a'zolari ro'yxati</p>
+            </div>
+          </div>
+          <button onclick="loadUsersList()" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 px-2.5 py-1 rounded-xl text-slate-300 font-semibold transition-all">
+            <i class="fas fa-sync-alt mr-1"></i>
+          </button>
+        </div>
+        <div id="usersListContainer" class="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+          <p class="text-center text-xs text-slate-500 py-4">Foydalanuvchilar yuklanmoqda...</p>
+        </div>
+      </div>
+    </div>
+
     <!-- TOAST -->
     <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 max-w-xs w-full bg-slate-900/95 border border-indigo-500/50 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl text-center hidden z-50"></div>
     <p class="text-center text-[10px] text-slate-500 pt-3">© 2026 Abdulloh Abdug'aniyev • Maxsus Mini Ilova</p>
@@ -311,15 +342,7 @@ const ADMIN_HTML = `<!DOCTYPE html>
     const tg = window.Telegram?.WebApp;
     if (tg) { tg.expand(); tg.ready(); if (tg.setHeaderColor) tg.setHeaderColor('#0f172a'); if (tg.setBackgroundColor) tg.setBackgroundColor('#0f172a'); }
 
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.tab-btn').forEach(el => { el.classList.remove('active', 'text-indigo-300'); el.classList.add('text-slate-400'); });
-      const activeView = document.getElementById('view-' + tabId);
-      const activeBtn = document.getElementById('tab-' + tabId);
-      if (activeView) activeView.classList.remove('hidden');
-      if (activeBtn) { activeBtn.classList.add('active'); activeBtn.classList.remove('text-slate-400'); }
-      if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
-    }
+
 
     function showToast(message, isError = false) {
       const toast = document.getElementById('toast');
@@ -337,6 +360,14 @@ const ADMIN_HTML = `<!DOCTYPE html>
         if (data.uptime) document.getElementById('stat-uptime').innerText = data.uptime;
         if (data.bot_name) document.getElementById('inputBotName').value = data.bot_name;
         if (data.bot_description) document.getElementById('inputBotDesc').value = data.bot_description;
+        if (data.admin_avatar) {
+          document.getElementById('inputAdminAvatar').value = data.admin_avatar;
+          const img = document.getElementById('adminProfileImg');
+          const fallback = document.getElementById('adminProfileFallback');
+          img.src = data.admin_avatar;
+          img.classList.remove('hidden');
+          fallback.classList.add('hidden');
+        }
         if (data.updated_at) { const d = new Date(data.updated_at); document.getElementById('clanLastUpdated').innerText = "Yangilandi: " + d.toLocaleTimeString(); }
       } catch (e) { console.error(e); }
     }
@@ -359,15 +390,26 @@ const ADMIN_HTML = `<!DOCTYPE html>
     async function submitBotInfo() {
       const name = document.getElementById('inputBotName').value.trim();
       const desc = document.getElementById('inputBotDesc').value.trim();
+      const avatar = document.getElementById('inputAdminAvatar').value.trim();
       const btn = document.getElementById('btnSaveBotInfo');
       btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saqlanmoqda...';
       try {
-        const res = await fetch('/api/bot-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, description: desc, admin_id: 8255294502 }) });
+        const res = await fetch('/api/bot-info', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, description: desc, admin_avatar: avatar, admin_id: 8255294502 }) });
         const data = await res.json();
-        if (data.success) { showToast("✅ Bot ma'lumotlari muvaffaqiyatli yangilandi!"); if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); }
+        if (data.success) { 
+          showToast("✅ Bot & Admin sozlamalari yangilandi!"); 
+          if (avatar) {
+            const img = document.getElementById('adminProfileImg');
+            const fallback = document.getElementById('adminProfileFallback');
+            img.src = avatar;
+            img.classList.remove('hidden');
+            fallback.classList.add('hidden');
+          }
+          if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); 
+        }
         else { showToast("Xatolik: " + (data.message || "Yangilanmadi"), true); }
       } catch (e) { showToast("Server xatoligi", true); }
-      finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> <span>Bot Ma\\'lumotlarini Saqlash</span>'; }
+      finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> <span>Bot & Admin Sozlamalarini Saqlash</span>'; }
     }
 
     function copyCode() {
@@ -472,7 +514,51 @@ const ADMIN_HTML = `<!DOCTYPE html>
       showToast("▶️ " + title + " ijro etilmoqda");
     }
 
-    function refreshLiveStats() { loadAllData(); triggerPing(); showToast("Statistika yangilandi 🔄"); }
+    async function loadUsersList() {
+      const container = document.getElementById('usersListContainer');
+      container.innerHTML = '<p class="text-center text-xs text-slate-500 py-4"><i class="fas fa-spinner fa-spin mr-1"></i> Foydalanuvchilar yuklanmoqda...</p>';
+      try {
+        const res = await fetch('/api/users');
+        const data = await res.json();
+        if (data.success && data.users && data.users.length > 0) {
+          container.innerHTML = '';
+          data.users.forEach(u => {
+            const name = (u.first_name + ' ' + (u.last_name || '')).trim();
+            const date = new Date(u.last_seen).toLocaleString('uz-UZ', { hourCycle: 'h23' });
+            const typeBadge = u.chat_type === 'private' ? '<span class="text-[9px] bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded border border-sky-500/30 font-bold">Lichka</span>' : '<span class="text-[9px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-500/30 font-bold">Guruh</span>';
+            const row = document.createElement('div');
+            row.className = 'bg-slate-900/60 p-3 rounded-2xl border border-slate-800 flex flex-col gap-1 text-xs mt-2';
+            row.innerHTML = '<div class="flex items-center justify-between">' +
+              '<span class="font-extrabold text-slate-200">' + name + '</span>' +
+              typeBadge +
+              '</div>' +
+              '<div class="flex justify-between text-[10px] text-slate-400 mt-1">' +
+              '<span>ID: ' + u.id + '</span>' +
+              '<span>User: <span class="text-indigo-400 font-bold">' + u.username + '</span></span>' +
+              '</div>' +
+              '<div class="text-[9px] text-slate-500 mt-0.5">So\'nggi faollik: ' + date + '</div>';
+            container.appendChild(row);
+          });
+        } else {
+          container.innerHTML = '<p class="text-center text-xs text-slate-500 py-4">Foydalanuvchilar topilmadi</p>';
+        }
+      } catch (e) {
+        container.innerHTML = '<p class="text-center text-xs text-rose-400 py-4">Yuklashda xatolik yuz berdi</p>';
+      }
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(el => { el.classList.remove('active', 'text-indigo-300'); el.classList.add('text-slate-400'); });
+      const activeView = document.getElementById('view-' + tabId);
+      const activeBtn = document.getElementById('tab-' + tabId);
+      if (activeView) activeView.classList.remove('hidden');
+      if (activeBtn) { activeBtn.classList.add('active'); activeBtn.classList.remove('text-slate-400'); }
+      if (tabId === 'users') loadUsersList();
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+    }
+
+    function refreshLiveStats() { loadAllData(); triggerPing(); loadUsersList(); showToast("Statistika yangilandi 🔄"); }
     loadAllData(); setInterval(loadAllData, 12000);
   </script>
 </body>
@@ -516,6 +602,7 @@ app.get("/api/status", async (req, res) => {
     uptime: `${hours}h ${minutes}m ${seconds}s`,
     clan_code: getClanCode(),
     clan_photo: getClanPhoto(),
+    admin_avatar: getClanData().admin_avatar || "",
     admin: "Abdulloh Abdug'aniyev",
     admin_id: 8255294502,
     updated_at: new Date().toISOString(),
@@ -536,10 +623,10 @@ app.post("/api/clan-code", (req, res) => {
   res.json({ success: true, clan_code: clan_code.trim(), clan_photo: getClanPhoto() });
 });
 
-// Bot ma'lumotlarini (Nomi, Tavsifi) yangilash API
+// Bot ma'lumotlarini (Nomi, Tavsifi, Avatar) yangilash API
 app.post("/api/bot-info", async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, admin_avatar } = req.body;
     if (name && name.trim()) {
       await bot.api.setMyName(name.trim());
     }
@@ -547,10 +634,31 @@ app.post("/api/bot-info", async (req, res) => {
       await bot.api.setMyDescription(description.trim());
       await bot.api.setMyShortDescription(description.trim().substring(0, 120));
     }
+    if (admin_avatar !== undefined) {
+      const data = getClanData();
+      data.admin_avatar = admin_avatar.trim();
+      fs.writeFileSync(CLAN_DATA_FILE, JSON.stringify(data, null, 2), "utf-8");
+    }
     res.json({ success: true, message: "Bot ma'lumotlari muvaffaqiyatli saqlandi!" });
   } catch (err) {
     console.error("Bot info update error:", err.message);
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+const USERS_FILE = path.join(process.cwd(), "users.json");
+
+// Foydalanuvchilar ro'yxati API
+app.get("/api/users", (req, res) => {
+  try {
+    let users = {};
+    if (fs.existsSync(USERS_FILE)) {
+      users = JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
+    }
+    const userList = Object.values(users).sort((a, b) => new Date(b.last_seen) - new Date(a.last_seen));
+    res.json({ success: true, users: userList });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
   }
 });
 
@@ -581,6 +689,32 @@ app.post("/api/generate-image", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`[HTTP Cloud & Admin Server] ${PORT}-portda muvaffaqiyatli ishga tushdi.`);
 });
+
+function trackUser(ctx) {
+  try {
+    const from = ctx.from || ctx.businessMessage?.from;
+    if (!from) return;
+
+    let users = {};
+    if (fs.existsSync(USERS_FILE)) {
+      users = JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
+    }
+
+    const userId = from.id;
+    users[userId] = {
+      id: userId,
+      first_name: from.first_name || "",
+      last_name: from.last_name || "",
+      username: from.username ? `@${from.username}` : "Yo'q",
+      chat_type: ctx.chat?.type || "unknown",
+      last_seen: new Date().toISOString()
+    };
+
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), "utf-8");
+  } catch (e) {
+    console.error("User tracking error:", e);
+  }
+}
 
 // ==========================================
 // 2. ADMIN VA BOT EGASI SOZLAMALARI
@@ -1113,6 +1247,7 @@ EGASI VA YARATUVCHISI HAQIDA MUHIM QOIDA:
 - Agar kimdir oddiygina 'kim bu?', 'buni kim yaratgan?', 'kim yaratgan bu botni?', 'yaratuvchisi kim?', 'avtori kim?' deb so'rasa, FAQAT va FAQAT ismini aytib qo'ying: 'Abdulloh Abdug'aniyev'. Uning yoshi, maktabi, qayerdanligi kabi hech qanday shaxsiy ma'lumotlarni mutlaqo yozmang!
 - Agarda foydalanuvchi aynan 'Abdulloh haqida ma'lumot ber' yoki 'egasi haqida ma'lumot ber' deb aniq va batafsil so'rasagina, quyidagi to'liq ma'lumotni bering:
   'U hozir band, chunki dam olish vaqtida. Egasi — Abdulloh Abdug'aniyev, 15 yoshda, Andijon viloyati Shahrixon tumanidan, 2-maktab 9-sinf o'quvchisi va KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-Stack dasturchi.'
+- Agarda foydalanuvchi "Abdullohni oilasi haqida ma'lumot ber" deb so'rasa, qisqa va lo'nda qilib: "Onasi — Roziyahon, Otasi — Yosinbek, Opasi — Robiya" deb javob bering.
 - Telefon raqamlarini hech qachon bermang!
 
 GURUH QOIDALARI:
@@ -1146,6 +1281,7 @@ EGASI VA YARATUVCHISI HAQIDA MUHIM QOIDA:
 - Agar kimdir oddiygina 'kim bu?', 'buni kim yaratgan?', 'kim yaratgan bu botni?', 'yaratuvchisi kim?', 'avtori kim?' deb so'rasa, FAQAT va FAQAT ismini aytib qo'ying: 'Abdulloh Abdug'aniyev'. Uning yoshi, maktabi, qayerdanligi kabi hech qanday shaxsiy ma'lumotlarni mutlaqo yozmang!
 - Agarda foydalanuvchi aynan 'Abdulloh haqida ma'lumot ber' yoki 'egasi haqida ma'lumot ber' deb aniq va batafsil so'rasagina, quyidagi to'liq ma'lumotni bering:
   'U hozir band, chunki dam olish vaqtida. Egasi — Abdulloh Abdug'aniyev, 15 yoshda, Andijon viloyati Shahrixon tumanidan, 2-maktab 9-sinf o'quvchisi va KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-Stack dasturchi.'
+- Agarda foydalanuvchi "Abdullohni oilasi haqida ma'lumot ber" deb so'rasa, qisqa va lo'nda qilib: "Onasi — Roziyahon, Otasi — Yosinbek, Opasi — Robiya" deb javob bering.
 - Telefon raqamlarini hech qachon bermang!
 
 SHAXSIY CHAT QOIDALARI (MUHIM):
@@ -1195,7 +1331,24 @@ async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin =
     weatherContext = await getLiveWeather(textToCheck);
   }
 
-  const prompt = getSystemPrompt(isGroup, userIsAdmin, weatherContext);
+  let introPrompt = "";
+  if (chatId) {
+    try {
+      let users = {};
+      if (fs.existsSync(USERS_FILE)) {
+        users = JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
+      }
+      if (users[chatId] && !users[chatId].introduced) {
+        introPrompt = "\nMUHIM QOIDA: Bu foydalanuvchi bilan birinchi marta muloqot qilishingiz. O'zingizni juda muloyimlik bilan tanishtiring (Masalan: 'Assalomu alaykum! Men Abdulloh Abdug'aniyev tomonidan yaratilgan sun'iy intellekt yordamchisiman...'). Keyingi xabarlarda o'zingizni boshqa tanishtirmang.\n";
+        users[chatId].introduced = true;
+        fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), "utf-8");
+      }
+    } catch (e) {
+      console.error("Intro tracking error:", e);
+    }
+  }
+
+  const prompt = getSystemPrompt(isGroup, userIsAdmin, weatherContext) + introPrompt;
   let contents = [];
 
   if (chatId && typeof contentPayload === "string") {
@@ -1922,6 +2075,7 @@ bot.on(["message:video", "message:video_note"], async (ctx) => {
 
 // Rasm (Photo) kelganda
 bot.on("message:photo", async (ctx) => {
+  trackUser(ctx);
   const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
   const replyTo = ctx.message.reply_to_message;
   const photo = ctx.message.photo;
@@ -2059,6 +2213,7 @@ bot.on("message:document", async (ctx) => {
 
 // Guruh va Shaxsiy chat matnli xabarlari
 bot.on("message:text", async (ctx) => {
+  trackUser(ctx);
   const isPrivate = ctx.chat.type === "private";
   const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
   const senderId = ctx.from?.id;
