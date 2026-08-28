@@ -1,4 +1,4 @@
-import { Bot, GrammyError, HttpError } from "grammy";
+import { Bot, InlineKeyboard, GrammyError, HttpError } from "grammy";
 import { GoogleGenAI } from "@google/genai";
 import express from "express";
 import fs from "fs";
@@ -104,10 +104,142 @@ function getRandomEmoji() {
 }
 
 // ==========================================
-// 4. AI RASM GENERATSIYASI & MUSIQA QIDIRUV FUNKSIYALARI
+// 4. INTERAKTIV MUSIQA QIDIRUV & RO'YXAT TIZIMI (4-5 ta tanlov)
+// ==========================================
+const musicCache = new Map();
+
+// Keshni tozalab turish (1 soatdan eski qidiruvlarni tozalaydi)
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of musicCache.entries()) {
+    if (now - val.createdAt > 3600000) {
+      musicCache.delete(key);
+    }
+  }
+}, 600000);
+
+// Musiqa qidiruvchi (Deezer & iTunes API orqali 4-5 ta trek)
+async function searchMusicList(query) {
+  const cleanQ = query.trim();
+  const results = [];
+
+  // 1. Deezer API
+  try {
+    const res = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(cleanQ)}&limit=5`);
+    const data = await res.json();
+    if (data && data.data && Array.isArray(data.data)) {
+      for (const t of data.data) {
+        if (t.preview) {
+          results.push({
+            id: t.id,
+            title: t.title,
+            artist: t.artist?.name || "Noma'lum ijrochi",
+            audioUrl: t.preview,
+            duration: t.duration,
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Deezer search error:", e.message);
+  }
+
+  // 2. iTunes API (Agar Deezer kam topsa)
+  if (results.length < 3) {
+    try {
+      const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(cleanQ)}&media=music&limit=5`);
+      const data = await res.json();
+      if (data && data.results && Array.isArray(data.results)) {
+        for (const t of data.results) {
+          if (t.previewUrl && !results.some((r) => r.title.toLowerCase() === t.trackName.toLowerCase())) {
+            results.push({
+              id: t.trackId,
+              title: t.trackName,
+              artist: t.artistName || "Noma'lum ijrochi",
+              audioUrl: t.previewUrl,
+              duration: 30,
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.error("iTunes search error:", e.message);
+    }
+  }
+
+  return results.slice(0, 5);
+}
+
+// Musiqa ro'yxatini chiqarish va tanlash tugmalarini yasash
+async function sendInteractiveMusicMenu(ctx, queryText, isBusiness = false) {
+  const tracks = await searchMusicList(queryText);
+
+  if (!tracks || tracks.length === 0) {
+    const notFoundText = `😔 Kechirasiz, *"${queryText}"* bo'yicha hech qanday musiqa topilmadi. Qo'shiqchi yoki musiqa nomini aniqroq yozib ko'ring! 🎧`;
+    if (isBusiness) {
+      await ctx.reply(notFoundText, {
+        business_connection_id: ctx.businessMessage?.business_connection_id,
+        parse_mode: "Markdown",
+      });
+    } else {
+      await ctx.reply(notFoundText, {
+        parse_mode: "Markdown",
+        reply_parameters: {
+          message_id: ctx.message?.message_id,
+          allow_sending_without_reply: true,
+        },
+      });
+    }
+    return;
+  }
+
+  // Qidiruv natijasini keshga saqlash
+  const searchId = Math.random().toString(36).substring(2, 8);
+  musicCache.set(searchId, { tracks, createdAt: Date.now() });
+
+  // Xabar matni
+  let menuText = `🎧 *"${queryText}" bo'yicha topilgan qo'shiqlar:*\n\n`;
+  tracks.forEach((t, i) => {
+    menuText += `${i + 1}️⃣ *${t.title}* — _${t.artist}_\n`;
+  });
+  menuText += `\n👇 *Eshitmoqchi bo'lgan qo'shig'ingiz ustiga bosing:*`;
+
+  // Inline tugmalar (Har bir qo'shiq uchun alohida tugma)
+  const keyboard = new InlineKeyboard();
+  tracks.forEach((t, i) => {
+    const shortTitle = t.title.length > 20 ? t.title.substring(0, 20) + "..." : t.title;
+    const shortArtist = t.artist.length > 15 ? t.artist.substring(0, 15) + "..." : t.artist;
+    keyboard.text(`${i + 1}️⃣ ${shortTitle} (${shortArtist})`, `mus:${searchId}:${i}`).row();
+  });
+
+  if (isBusiness) {
+    // Business chatlarda birinchi trekni to'g'ridan-to'g'ri tashlaymiz + ro'yxat
+    const topTrack = tracks[0];
+    try {
+      await ctx.replyWithAudio(topTrack.audioUrl, {
+        title: topTrack.title,
+        performer: topTrack.artist,
+        caption: `🎵 *${topTrack.title}* — ${topTrack.artist}\n\n🎧 Qidiruv: "${queryText}"`,
+        parse_mode: "Markdown",
+        business_connection_id: ctx.businessMessage?.business_connection_id,
+      });
+    } catch (e) {}
+  } else {
+    await ctx.reply(menuText, {
+      parse_mode: "Markdown",
+      reply_markup: keyboard,
+      reply_parameters: {
+        message_id: ctx.message?.message_id,
+        allow_sending_without_reply: true,
+      },
+    });
+  }
+}
+
+// ==========================================
+// 5. AI RASM GENERATSIYASI SO'ROVINI ANIQLASH
 // ==========================================
 
-// Rasm yaratish so'rovini aniqlash
 function isImageRequest(text) {
   if (!text) return false;
   const t = text.toLowerCase().trim();
@@ -124,7 +256,6 @@ function isImageRequest(text) {
   );
 }
 
-// Rasm matnini tozalash (Prompt)
 function extractImagePrompt(text) {
   let p = text.trim();
   p = p.replace(/^\/(image|rasm|draw)\s*/i, "");
@@ -133,7 +264,6 @@ function extractImagePrompt(text) {
   return p || "beautiful aesthetic high quality 4k wallpaper";
 }
 
-// Musiqa qidirish so'rovini aniqlash
 function isMusicRequest(text) {
   if (!text) return false;
   const t = text.toLowerCase().trim();
@@ -150,58 +280,22 @@ function isMusicRequest(text) {
     t.includes("mp3 top") ||
     t.includes("musiqa tashla") ||
     t.includes("qo'shiq tashla") ||
-    t.includes("qoshiq tashla")
+    t.includes("qoshiq tashla") ||
+    t.includes("bu qoshiqni top") ||
+    t.includes("bu qo'shiqni top")
   );
 }
 
-// Musiqa nomini tozalash (Query)
 function extractMusicQuery(text) {
   let q = text.trim();
   q = q.replace(/^\/(music|musiqa|mp3|song)\s*/i, "");
-  q = q.replace(/(menga|iltimos)?\s*(musiqa\s*topib\s*ber|qo'shiq\s*topib\s*ber|qoshiq\s*topib\s*ber|musiqasini\s*top|qo'shig'ini\s*top|mp3\s*top|musiqa\s*tashla|qo'shiq\s*tashla)/gi, "");
+  q = q.replace(/(menga|iltimos)?\s*(bu\s*)?(musiqa\s*topib\s*ber|qo'shiq\s*topib\s*ber|qoshiq\s*topib\s*ber|musiqasini\s*top|qo'shig'ini\s*top|mp3\s*top|musiqa\s*tashla|qo'shiq\s*tashla)/gi, "");
   q = q.replace(/[:\-]/g, " ").trim();
   return q;
 }
 
-// Musiqa qidiruvchi (Deezer & iTunes API)
-async function searchMusic(query) {
-  try {
-    const res = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=5`);
-    const data = await res.json();
-    if (data && data.data && data.data.length > 0) {
-      const track = data.data[0];
-      return {
-        title: track.title,
-        artist: track.artist?.name || "Noma'lum ijrochi",
-        audioUrl: track.preview,
-        duration: track.duration,
-      };
-    }
-  } catch (e) {
-    console.error("Deezer search error:", e.message);
-  }
-
-  try {
-    const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=3`);
-    const data = await res.json();
-    if (data && data.results && data.results.length > 0) {
-      const track = data.results[0];
-      return {
-        title: track.trackName,
-        artist: track.artistName,
-        audioUrl: track.previewUrl,
-        duration: 30,
-      };
-    }
-  } catch (e) {
-    console.error("iTunes search error:", e.message);
-  }
-
-  return null;
-}
-
 // ==========================================
-// 5. TIZIMLI PROMPT & AI JAVOB GENERATSIYASI
+// 6. TIZIMLI PROMPT & AI JAVOB GENERATSIYASI
 // ==========================================
 
 function getSystemPrompt(isGroup = false) {
@@ -322,7 +416,44 @@ async function downloadTelegramFileAsBase64(ctx, fileId) {
 }
 
 // ==========================================
-// 6. TELEGRAM EVENTLARI
+// 7. TELEGRAM CALLBACK QUERY (Qo'shiq tanlanganda)
+// ==========================================
+bot.on("callback_query:data", async (ctx) => {
+  const data = ctx.callbackQuery.data;
+
+  if (data.startsWith("mus:")) {
+    const [, searchId, indexStr] = data.split(":");
+    const index = parseInt(indexStr, 10);
+    const cached = musicCache.get(searchId);
+
+    if (!cached || !cached.tracks || !cached.tracks[index]) {
+      await ctx.answerCallbackQuery({ text: "⚠️ Ushbu qo'shiq muddati o'tgan. Iltimos, qayta qidiring." });
+      return;
+    }
+
+    const track = cached.tracks[index];
+    await ctx.answerCallbackQuery({ text: `🎵 "${track.title}" yuklanmoqda...` });
+
+    try {
+      await ctx.replyWithAudio(track.audioUrl, {
+        title: track.title,
+        performer: track.artist,
+        caption: `🎵 *${track.title}* — ${track.artist}\n\nMarhamat, musiqani tinglashingiz mumkin! 🎧✨`,
+        parse_mode: "Markdown",
+        reply_parameters: {
+          message_id: ctx.callbackQuery.message?.message_id,
+          allow_sending_without_reply: true,
+        },
+      });
+    } catch (err) {
+      console.error("Callback Audio Reply Error:", err.message);
+      await ctx.reply(`🎵 *${track.title}* — ${track.artist}\n\nEshitish uchun havola: ${track.audioUrl}`);
+    }
+  }
+});
+
+// ==========================================
+// 8. TELEGRAM EVENTLARI
 // ==========================================
 
 // Business ulanish holati
@@ -371,7 +502,7 @@ bot.on("business_message", async (ctx) => {
       const downloaded = await downloadTelegramFileAsBase64(ctx, highestPhoto.file_id);
 
       if (downloaded) {
-        const userPrompt = caption || "Ushbu rasmni sinchiklab ko'rib chiqing. Undagi buyum (masalan: butsi, mashina, kiyim, texnika, odam yoki buyum) haqida JUDA TO'LIQ, qiziqarli, aniq va professional ma'lumot bering.";
+        const userPrompt = caption || "Ushbu rasmni sinchiklab ko'rib chiqing. Undagi buyum (masalan: butsi, mashina, kiyim, texnika, telefon yoki buyum) haqida juda to'liq, narxlari va sotiladigan joylari bilan ma'lumot bering.";
         const payload = [
           {
             inlineData: {
@@ -405,7 +536,7 @@ bot.on("business_message", async (ctx) => {
         const downloaded = await downloadTelegramFileAsBase64(ctx, highestPhoto.file_id);
 
         if (downloaded) {
-          const userPrompt = `Foydalanuvchi ushbu rasmga reply qilib quyidagicha yozdi/so'radi: "${messageText}".\nIltimos, rasmni sinchiklab ko'rib, foydalanuvchining savoliga juda to'liq, aniq, qiziqarli va professional javob bering.`;
+          const userPrompt = `Foydalanuvchi ushbu rasmga reply qilib quyidagicha yozdi/so'radi: "${messageText}".\nIltimos, rasmni sinchiklab ko'rib, foydalanuvchining savoliga juda to'liq, narxlari va sotilish joylari bilan javob bering.`;
           const payload = [
             {
               inlineData: {
@@ -449,29 +580,12 @@ bot.on("business_message", async (ctx) => {
         }
       }
 
-      // C) Musiqa qidirish so'rovi bo'lsa
+      // C) Musiqa qidirish so'rovi bo'lsa (4-5 ta ro'yxat)
       if (isMusicRequest(messageText)) {
         const musicQuery = extractMusicQuery(messageText);
         if (musicQuery) {
-          const track = await searchMusic(musicQuery);
-          if (track && track.audioUrl) {
-            try {
-              await ctx.replyWithAudio(track.audioUrl, {
-                title: track.title,
-                performer: track.artist,
-                caption: `🎵 *${track.title}* — ${track.artist}\n\nMarhamat, musiqani tinglashingiz mumkin! 🎧✨`,
-                parse_mode: "Markdown",
-                business_connection_id: ctx.businessMessage.business_connection_id,
-                reply_parameters: {
-                  message_id: ctx.businessMessage.message_id,
-                  allow_sending_without_reply: true,
-                },
-              });
-              return;
-            } catch (audioErr) {
-              console.error("Audio reply error:", audioErr.message);
-            }
-          }
+          await sendInteractiveMusicMenu(ctx, musicQuery, true);
+          return;
         }
       }
 
@@ -642,7 +756,7 @@ bot.on("message:photo", async (ctx) => {
     const downloaded = await downloadTelegramFileAsBase64(ctx, highestPhoto.file_id);
 
     if (downloaded) {
-      const userPrompt = caption || "Ushbu rasmni sinchiklab ko'rib chiqing. Undagi buyum (masalan: butsi, mashina, kiyim, texnika yoki buyum) haqida JUDA TO'LIQ, qiziqarli, aniq va professional ma'lumot bering.";
+      const userPrompt = caption || "Ushbu rasmni sinchiklab ko'rib chiqing. Undagi buyum (masalan: butsi, mashina, kiyim, texnika yoki buyum) haqida JUDA TO'LIQ, narxlari va O'zbekistonda qayerda sotilishi bilan ma'lumot bering.";
       const payload = [
         {
           inlineData: {
@@ -761,7 +875,7 @@ bot.on("message:text", async (ctx) => {
       const downloaded = await downloadTelegramFileAsBase64(ctx, highestPhoto.file_id);
 
       if (downloaded) {
-        const userPrompt = `Foydalanuvchi ushbu rasmga reply qilib quyidagicha yozdi/so'radi: "${messageText}".\nIltimos, rasmni sinchiklab ko'rib, foydalanuvchining savoliga juda to'liq, aniq, qiziqarli va professional javob bering.`;
+        const userPrompt = `Foydalanuvchi ushbu rasmga reply qilib quyidagicha yozdi/so'radi: "${messageText}".\nIltimos, rasmni sinchiklab ko'rib, foydalanuvchining savoliga juda to'liq, narxlari va sotilish joylari bilan javob bering.`;
         const payload = [
           {
             inlineData: {
@@ -803,28 +917,12 @@ bot.on("message:text", async (ctx) => {
       }
     }
 
-    // 3. Musiqa qidirish so'rovi bo'lsa
+    // 3. Musiqa qidirish so'rovi bo'lsa (4-5 ta ro'yxat va tanlash tugmalari)
     if (isMusicRequest(messageText)) {
       const musicQuery = extractMusicQuery(messageText);
       if (musicQuery) {
-        const track = await searchMusic(musicQuery);
-        if (track && track.audioUrl) {
-          try {
-            await ctx.replyWithAudio(track.audioUrl, {
-              title: track.title,
-              performer: track.artist,
-              caption: `🎵 *${track.title}* — ${track.artist}\n\nMarhamat, musiqani tinglashingiz mumkin! 🎧✨`,
-              parse_mode: "Markdown",
-              reply_parameters: {
-                message_id: ctx.message.message_id,
-                allow_sending_without_reply: true,
-              },
-            });
-            return;
-          } catch (audioErr) {
-            console.error("Direct Audio reply error:", audioErr.message);
-          }
-        }
+        await sendInteractiveMusicMenu(ctx, musicQuery, false);
+        return;
       }
     }
 
@@ -867,7 +965,7 @@ bot.on("channel_post:text", async (ctx) => {
 });
 
 // ==========================================
-// 7. CRASH VA XATOLIKLARDAN HIMOYA (24/7 Barqarorlik)
+// 9. CRASH VA XATOLIKLARDAN HIMOYA (24/7 Barqarorlik)
 // ==========================================
 bot.catch((err) => {
   const ctx = err.ctx;
@@ -903,7 +1001,7 @@ process.once("SIGTERM", () => {
 });
 
 // ==========================================
-// 8. BOTNI ISHGA TUSHIRISH (Auto-reconnect loop)
+// 10. BOTNI ISHGA TUSHIRISH (Auto-reconnect loop)
 // ==========================================
 console.log("==========================================");
 console.log(" Telegram AI Bot 24/7 tizimi ishga tushmoqda...");
@@ -914,5 +1012,5 @@ bot.start({
     console.log(`[Bot Online] @${botInfo.username} muvaffaqiyatli ishga tushdi!`);
   },
   drop_pending_updates: true,
-  allowed_updates: ["message", "business_message", "business_connection", "channel_post"],
+  allowed_updates: ["message", "business_message", "business_connection", "channel_post", "callback_query"],
 });
