@@ -1216,7 +1216,7 @@ bot.on("business_message", async (ctx) => {
       }
 
       console.log(`[Business Matn][${senderName}]: ${messageText}`);
-      const aiAnswer = await generateAiResponse(messageText, false, userIsAdmin);
+      const aiAnswer = await generateAiResponse(messageText, false, userIsAdmin, messageText);
 
       await ctx.reply(aiAnswer, {
         business_connection_id: ctx.businessMessage.business_connection_id,
@@ -1547,7 +1547,8 @@ bot.on(["message:video", "message:video_note"], async (ctx) => {
     const aiAnswer = await generateAiResponse(
       `Foydalanuvchi video yubordi va quyidagicha so'radi/yozdi: "${promptInput}".\nVideodagi musiqani (qo'shiq nomi va ijrochisini) aniqlab, qisqa va aniq ma'lumot bering.`,
       isGroup,
-      userIsAdmin
+      userIsAdmin,
+      promptInput
     );
 
     await ctx.reply(aiAnswer, {
@@ -1606,7 +1607,7 @@ bot.on("message:photo", async (ctx) => {
         userPrompt,
       ];
 
-      const aiAnswer = await generateAiResponse(payload, isGroup, userIsAdmin);
+      const aiAnswer = await generateAiResponse(payload, isGroup, userIsAdmin, caption);
 
       await ctx.reply(aiAnswer, {
         reply_parameters: {
@@ -1660,7 +1661,7 @@ bot.on("message:document", async (ctx) => {
         userPrompt,
       ];
 
-      const aiAnswer = await generateAiResponse(payload, isGroup, userIsAdmin);
+      const aiAnswer = await generateAiResponse(payload, isGroup, userIsAdmin, caption);
 
       await ctx.reply(aiAnswer, {
         reply_parameters: {
@@ -1726,7 +1727,7 @@ bot.on("message:text", async (ctx) => {
           userPrompt,
         ];
 
-        const aiAnswer = await generateAiResponse(payload, isGroup, userIsAdmin);
+        const aiAnswer = await generateAiResponse(payload, isGroup, userIsAdmin, messageText);
         await ctx.reply(aiAnswer, {
           reply_parameters: {
             message_id: ctx.message.message_id,
@@ -1800,7 +1801,7 @@ bot.on("channel_post:text", async (ctx) => {
 
   if (postText.toLowerCase().includes(`@${botUsername}`) || postText.toLowerCase().includes("abdulloh")) {
     console.log(`[Kanal Posti: ${ctx.chat.title}]: ${postText}`);
-    const aiAnswer = await generateAiResponse(postText, true, false);
+    const aiAnswer = await generateAiResponse(postText, true, false, postText);
     await ctx.reply(aiAnswer);
   }
 });
