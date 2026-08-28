@@ -41,7 +41,27 @@ app.listen(PORT, () => {
 });
 
 // ==========================================
-// 2. CLAN KODI BOSHQARUVI (Faqat guruhlar uchun)
+// 2. ADMIN VA BOT EGASI SOZLAMALARI
+// ==========================================
+const ADMIN_USERNAMES = ["abdulloh_abduganiyev_11", "abdulloh_abduganiyev"];
+const ADMIN_IDS = [8255294502];
+
+function isAdmin(ctx) {
+  const userId = ctx.from?.id || ctx.businessMessage?.from?.id;
+  const rawUsername = ctx.from?.username || ctx.businessMessage?.from?.username || "";
+  const username = rawUsername.toLowerCase().replace(/^@/, "");
+
+  if (userId && (ADMIN_IDS.includes(userId) || ADMIN_IDS.includes(Number(userId)))) {
+    return true;
+  }
+  if (username && ADMIN_USERNAMES.includes(username)) {
+    return true;
+  }
+  return false;
+}
+
+// ==========================================
+// 3. CLAN KODI BOSHQARUVI
 // ==========================================
 const CLAN_DATA_FILE = path.join(process.cwd(), "clan_data.json");
 
@@ -76,7 +96,7 @@ if (!fs.existsSync(CLAN_DATA_FILE)) {
 }
 
 // ==========================================
-// 3. BOT VA GEMINI AI SOZLAMALARI
+// 4. BOT VA GEMINI AI SOZLAMALARI
 // ==========================================
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const geminiApiKey = process.env.GEMINI_API_KEY;
@@ -88,7 +108,6 @@ if (!botToken || !geminiApiKey) {
 const bot = new Bot(botToken);
 const ai = new GoogleGenAI({ apiKey: geminiApiKey });
 
-// ENG TEZKOR VA MULTIMODAL SINOVDAN O'TGAN MODELLAR
 const AI_MODELS = [
   "gemini-3.1-flash-lite",
   "gemini-3.5-flash-lite",
@@ -96,7 +115,6 @@ const AI_MODELS = [
   "gemini-3-flash-preview",
 ];
 
-// Qiziqarli emojilar to'plami
 const FUN_EMOJIS = ["🔥", "⚡️", "😎", "🚀", "✨", "🤝", "🙌", "⚽️", "🎮", "💡", "🎯", "👏", "🏆", "🎧", "🎨"];
 
 function getRandomEmoji() {
@@ -104,11 +122,36 @@ function getRandomEmoji() {
 }
 
 // ==========================================
-// 4. TO'LIQ ORIGINAL MUSIQA QIDIRUV TIZIMI (Full Length MP3)
+// 5. FLUX AI (NANO BANANA) ULTRA-REALISTIK RASM GENERATORI
+// ==========================================
+
+// Gemini orqali o'zbekcha so'rovni 8k Ultra-realistik Flux promptiga aylantirish
+async function enhancePromptWithGemini(userQuery) {
+  try {
+    const res = await ai.models.generateContent({
+      model: "gemini-3.1-flash-lite",
+      contents: `Foydalanuvchi so'rovi: "${userQuery}".\nBuni eng so'nggi Flux / Nano Banana AI rasm generatori uchun professional, ultra-realistik 8k, fotorealistik bitta toza inglizcha promptga aylantiring. Faqat va faqat toza inglizcha prompt matnini qaytaring, boshqa hech qanday so'z yoki qo'shimcha yozmang.`,
+      config: {
+        maxOutputTokens: 150,
+        temperature: 0.4,
+      },
+    });
+
+    if (res && res.text) {
+      return res.text.trim().replace(/^["']|["']$/g, "");
+    }
+  } catch (e) {
+    console.error("Prompt enhance error:", e.message);
+  }
+
+  return userQuery;
+}
+
+// ==========================================
+// 6. TO'LIQ ORIGINAL MUSIQA QIDIRUV TIZIMI
 // ==========================================
 const musicCache = new Map();
 
-// Keshni tozalab turish (1 soatdan eski qidiruvlarni o'chiradi)
 setInterval(() => {
   const now = Date.now();
   for (const [key, val] of musicCache.entries()) {
@@ -118,12 +161,11 @@ setInterval(() => {
   }
 }, 600000);
 
-// Musiqa qidiruvchi (To'liq original MP3 larni izlash)
 async function searchMusicList(query) {
   const cleanQ = query.trim();
   const results = [];
 
-  // 1. To'liq original MP3 lar bazasidan qidirish (Muzfm Full MP3)
+  // 1. Muzfm (To'liq original MP3)
   try {
     const searchUrl = `https://muzfm.tv/search?q=${encodeURIComponent(cleanQ)}`;
     const res = await fetch(searchUrl, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } });
@@ -150,7 +192,7 @@ async function searchMusicList(query) {
           results.push({
             id: Math.random().toString(36).substring(2, 8),
             title: c.title,
-            artist: "Original Format",
+            artist: "Original MP3",
             audioUrl: mp3Match[1],
             isFull: true,
             ytSearchUrl: `https://music.youtube.com/search?q=${encodeURIComponent(c.title)}`,
@@ -163,7 +205,7 @@ async function searchMusicList(query) {
     console.error("Muzfm full search error:", e.message);
   }
 
-  // 2. Deezer API (Agar qo'shimcha kerak bo'lsa)
+  // 2. Deezer API (Fallback)
   if (results.length < 3) {
     try {
       const res = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(cleanQ)}&limit=5`);
@@ -189,7 +231,7 @@ async function searchMusicList(query) {
     }
   }
 
-  // 3. iTunes API (Agar hali ham kam bo'lsa)
+  // 3. iTunes API (Fallback)
   if (results.length < 3) {
     try {
       const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(cleanQ)}&media=music&limit=5`);
@@ -218,7 +260,7 @@ async function searchMusicList(query) {
   return results.slice(0, 5);
 }
 
-// Musiqa menyusini chiqarish
+// Musiqa menyusini chiqarish va MP3 yuborish
 async function sendInteractiveMusicMenu(ctx, queryText, isBusiness = false) {
   const tracks = await searchMusicList(queryText);
 
@@ -244,30 +286,44 @@ async function sendInteractiveMusicMenu(ctx, queryText, isBusiness = false) {
   const searchId = Math.random().toString(36).substring(2, 8);
   musicCache.set(searchId, { tracks, createdAt: Date.now() });
 
-  let menuText = `🎧 *"${queryText}" bo'yicha topilgan qo'shiqlar:*\n\n`;
-  tracks.forEach((t, i) => {
-    menuText += `${i + 1}️⃣ *${t.title}* ${t.isFull ? "🔥 _(To'liq Original MP3)_" : "🎵"}\n`;
-  });
-  menuText += `\n👇 *Eshitish va yuklab olish uchun quyidagi tugmalardan birini bosing:*`;
+  // 1-qo'shiqni to'g'ridan-to'g'ri MP3 qilib tashlaymiz
+  const topTrack = tracks[0];
+  try {
+    const audioOptions = {
+      title: topTrack.title,
+      performer: topTrack.artist,
+      caption: `🎵 *${topTrack.title}* — ${topTrack.artist}\n\n🎧 To'liq original: [YouTube Music](${topTrack.ytSearchUrl}) | [Spotify](${topTrack.spotifyUrl})`,
+      parse_mode: "Markdown",
+    };
 
-  const keyboard = new InlineKeyboard();
-  tracks.forEach((t, i) => {
-    const shortTitle = t.title.length > 20 ? t.title.substring(0, 20) + ".." : t.title;
-    keyboard.text(`${i + 1}️⃣ ${shortTitle}`, `mus:${searchId}:${i}`).row();
-  });
+    if (isBusiness) {
+      audioOptions.business_connection_id = ctx.businessMessage?.business_connection_id;
+      await ctx.replyWithAudio(topTrack.audioUrl, audioOptions);
+    } else {
+      audioOptions.reply_parameters = {
+        message_id: ctx.message?.message_id,
+        allow_sending_without_reply: true,
+      };
+      await ctx.replyWithAudio(topTrack.audioUrl, audioOptions);
+    }
+  } catch (err) {
+    console.error("Direct audio send error:", err.message);
+  }
 
-  if (isBusiness) {
-    const topTrack = tracks[0];
-    try {
-      await ctx.replyWithAudio(topTrack.audioUrl, {
-        title: topTrack.title,
-        performer: topTrack.artist,
-        caption: `🎵 *${topTrack.title}* — ${topTrack.artist}\n\n🎧 To'liq original: [YouTube Music](${topTrack.ytSearchUrl}) | [Spotify](${topTrack.spotifyUrl})`,
-        parse_mode: "Markdown",
-        business_connection_id: ctx.businessMessage?.business_connection_id,
-      });
-    } catch (e) {}
-  } else {
+  // Agar bir nechta trek bo'lsa, tanlash tugmalarini ham chiqaramiz
+  if (tracks.length > 1 && !isBusiness) {
+    let menuText = `🎧 *Boshqa variantlar ham topildi:*\n\n`;
+    tracks.forEach((t, i) => {
+      menuText += `${i + 1}️⃣ *${t.title}* ${t.isFull ? "🔥 _(To'liq MP3)_" : "🎵"}\n`;
+    });
+    menuText += `\n👇 *Boshqasini eshitmoqchi bo'lsangiz, tugmasini bosing:*`;
+
+    const keyboard = new InlineKeyboard();
+    tracks.forEach((t, i) => {
+      const shortTitle = t.title.length > 20 ? t.title.substring(0, 20) + ".." : t.title;
+      keyboard.text(`${i + 1}️⃣ ${shortTitle}`, `mus:${searchId}:${i}`).row();
+    });
+
     await ctx.reply(menuText, {
       parse_mode: "Markdown",
       reply_markup: keyboard,
@@ -280,7 +336,7 @@ async function sendInteractiveMusicMenu(ctx, queryText, isBusiness = false) {
 }
 
 // ==========================================
-// 5. SO'ROVLARNI ANIQLASH (Rasm va Musiqa)
+// 7. SO'ROVLARNI ANIQLASH (Rasm va Musiqa)
 // ==========================================
 
 function isImageRequest(text) {
@@ -304,7 +360,7 @@ function extractImagePrompt(text) {
   p = p.replace(/^\/(image|rasm|draw)\s*/i, "");
   p = p.replace(/(menga|iltimos|qani)?\s*(rasm\s*yaratib\s*ber|rasm\s*chizib\s*ber|rasmini\s*chiz|rasmini\s*yarat|rasm\s*qilib\s*ber|rasm\s*chiqarib\s*ber)/gi, "");
   p = p.replace(/[:\-]/g, " ").trim();
-  return p || "beautiful aesthetic high quality 4k wallpaper";
+  return p || "photorealistic 8k wallpaper";
 }
 
 function isMusicRequest(text) {
@@ -339,15 +395,20 @@ function extractMusicQuery(text) {
 }
 
 // ==========================================
-// 6. TIZIMLI PROMPT & AI JAVOB GENERATSIYASI
+// 8. TIZIMLI PROMPT & AI JAVOB GENERATSIYASI
 // ==========================================
 
-function getSystemPrompt(isGroup = false) {
+function getSystemPrompt(isGroup = false, userIsAdmin = false) {
   const clanCode = getClanCode();
+
+  const adminNotice = userIsAdmin
+    ? "MUHIM: Siz bilan hozir botning EGASI VA BOSHQARUVCHISI — Abdulloh Abdug'aniyev gaplashmoqda! Unga hurmat bilan, boshliqqa xizmat ko'rsatuvchi sodiq shaxsiy yordamchisi sifatida gaplashing."
+    : "Siz bilan oddiy foydalanuvchi suhbatlashmoqda.";
 
   if (isGroup) {
     return `
 Siz Telegram guruhida xushmuomala, o'ta tezkor, aqlli va bilimdon yordamchisiz.
+${adminNotice}
 
 GURUH QOIDALARI:
 1. CLAN KODI: Faqat guruh a'zolari so'raganida faol Clan kodini ayting: "${clanCode}".
@@ -364,6 +425,7 @@ GURUH QOIDALARI:
   } else {
     return `
 Siz shaxsiy chatda xuddi haqiqiy do'stdek samimiy, juda aqlli, o'ta tezkor va bilimdon inson sifatida gaplashuvchi yordamchisiz.
+${adminNotice}
 
 SHAXSIY CHAT QOIDALARI (MUHIM):
 1. CLAN KODI HAQIDA UMUMAN GAPIRMANG: Shaxsiy chatlarda Clan kodi haqida hech narsa yozmang va "guruhdan olasiz" degan gaplarni ham mutlaqo ishlatmang.
@@ -385,9 +447,9 @@ SHAXSIY CHAT QOIDALARI (MUHIM):
 }
 
 // AI javob generatsiya qilish funksiyasi
-async function generateAiResponse(contentPayload, isGroup = false) {
+async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin = false) {
   let lastError = null;
-  const prompt = getSystemPrompt(isGroup);
+  const prompt = getSystemPrompt(isGroup, userIsAdmin);
   const contents = Array.isArray(contentPayload) ? contentPayload : [contentPayload];
 
   for (const modelName of AI_MODELS) {
@@ -460,7 +522,7 @@ async function downloadTelegramFileAsBase64(ctx, fileId) {
 }
 
 // ==========================================
-// 7. TELEGRAM CALLBACK QUERY (Qo'shiq tanlanganda)
+// 9. TELEGRAM CALLBACK QUERY (Qo'shiq tanlanganda)
 // ==========================================
 bot.on("callback_query:data", async (ctx) => {
   const data = ctx.callbackQuery.data;
@@ -497,15 +559,13 @@ bot.on("callback_query:data", async (ctx) => {
 });
 
 // ==========================================
-// 8. TELEGRAM EVENTLARI (Buyruqlar, Matn, Rasm, Video, Stiker)
+// 10. TELEGRAM EVENTLARI (Buyruqlar, Matn, Rasm, Video, Stiker)
 // ==========================================
 
-// Business ulanish holati
 bot.on("business_connection", (ctx) => {
   console.log(`[Business Connection] Ulanish o'rnatildi! ID: ${ctx.businessConnection.id}`);
 });
 
-// Telegram Business xabarlari
 bot.on("business_message", async (ctx) => {
   const fromId = ctx.businessMessage.from?.id;
   const chatId = ctx.businessMessage.chat?.id;
@@ -515,6 +575,7 @@ bot.on("business_message", async (ctx) => {
   const sticker = ctx.businessMessage.sticker;
   const caption = ctx.businessMessage.caption;
   const senderName = ctx.businessMessage.from?.first_name || "Do'stim";
+  const userIsAdmin = isAdmin(ctx);
 
   if (fromId !== chatId) {
     return;
@@ -523,7 +584,6 @@ bot.on("business_message", async (ctx) => {
   const stopTyping = startTypingIndicator(ctx, true);
 
   try {
-    // 1. STIKER KELGANDA
     if (sticker) {
       const emoji = getRandomEmoji();
       await ctx.reply(
@@ -539,11 +599,9 @@ bot.on("business_message", async (ctx) => {
       return;
     }
 
-    // 2. VIDEO KELGANDA (Musiqani aniqlash)
     if (video) {
-      console.log(`[Business Video keldi -> ${senderName}]`);
       const prompt = caption || "Ushbu videodagi musiqa yoki mavzuni aniqlang.";
-      const aiAnswer = await generateAiResponse(`Foydalanuvchi video yubordi. Undagi so'rov: "${prompt}". Agar videodagi qo'shiq so'ralgan bo'lsa, eng ehtimoliy qo'shiq nomi va ijrochisini ayting.`, false);
+      const aiAnswer = await generateAiResponse(`Foydalanuvchi video yubordi. Undagi so'rov: "${prompt}". Agar videodagi qo'shiq so'ralgan bo'lsa, eng ehtimoliy qo'shiq nomi va ijrochisini ayting.`, false, userIsAdmin);
       await ctx.reply(aiAnswer, {
         business_connection_id: ctx.businessMessage.business_connection_id,
         reply_parameters: {
@@ -554,9 +612,7 @@ bot.on("business_message", async (ctx) => {
       return;
     }
 
-    // 3. RASM KELGANDA
     if (photo && photo.length > 0) {
-      console.log(`[Business Rasm keldi -> ${senderName}]`);
       const highestPhoto = photo[photo.length - 1];
       const downloaded = await downloadTelegramFileAsBase64(ctx, highestPhoto.file_id);
 
@@ -572,7 +628,7 @@ bot.on("business_message", async (ctx) => {
           userPrompt,
         ];
 
-        const aiAnswer = await generateAiResponse(payload, false);
+        const aiAnswer = await generateAiResponse(payload, false, userIsAdmin);
         await ctx.reply(aiAnswer, {
           business_connection_id: ctx.businessMessage.business_connection_id,
           reply_parameters: {
@@ -584,11 +640,9 @@ bot.on("business_message", async (ctx) => {
       }
     }
 
-    // 4. MATN KELGANDA
     if (messageText) {
       const replyTo = ctx.businessMessage.reply_to_message;
 
-      // A) Avvalgi rasmga Reply
       if (replyTo && replyTo.photo && replyTo.photo.length > 0) {
         const highestPhoto = replyTo.photo[replyTo.photo.length - 1];
         const downloaded = await downloadTelegramFileAsBase64(ctx, highestPhoto.file_id);
@@ -605,7 +659,7 @@ bot.on("business_message", async (ctx) => {
             userPrompt,
           ];
 
-          const aiAnswer = await generateAiResponse(payload, false);
+          const aiAnswer = await generateAiResponse(payload, false, userIsAdmin);
           await ctx.reply(aiAnswer, {
             business_connection_id: ctx.businessMessage.business_connection_id,
             reply_parameters: {
@@ -617,14 +671,15 @@ bot.on("business_message", async (ctx) => {
         }
       }
 
-      // B) Rasm yaratish
+      // FLUX / Nano Banana Rasm yaratish
       if (isImageRequest(messageText)) {
-        const promptText = extractImagePrompt(messageText);
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=1024&height=1024&nologo=true`;
+        const rawPrompt = extractImagePrompt(messageText);
+        const enhancedPrompt = await enhancePromptWithGemini(rawPrompt);
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?model=flux&width=1024&height=1024&enhance=true&nologo=true`;
 
         try {
           await ctx.replyWithPhoto(imageUrl, {
-            caption: `🎨 *Siz so'ragan rasm:* _${promptText}_\n\nMarhamat! Yana boshqa rasm kerak bo'lsa bemalol ayting. ✨`,
+            caption: `🎨 *Siz so'ragan rasm:* _${rawPrompt}_\n\n✨ _Flux AI (Ultra-HD fotorealistik)_ orqali yaratildi!`,
             parse_mode: "Markdown",
             business_connection_id: ctx.businessMessage.business_connection_id,
             reply_parameters: {
@@ -638,7 +693,7 @@ bot.on("business_message", async (ctx) => {
         }
       }
 
-      // C) Musiqa qidirish (To'liq MP3)
+      // Musiqa qidirish
       if (isMusicRequest(messageText)) {
         const musicQuery = extractMusicQuery(messageText);
         if (musicQuery) {
@@ -647,9 +702,8 @@ bot.on("business_message", async (ctx) => {
         }
       }
 
-      // D) Oddiy matn
       console.log(`[Business Matn][${senderName}]: ${messageText}`);
-      const aiAnswer = await generateAiResponse(messageText, false);
+      const aiAnswer = await generateAiResponse(messageText, false, userIsAdmin);
 
       await ctx.reply(aiAnswer, {
         business_connection_id: ctx.businessMessage.business_connection_id,
@@ -669,7 +723,11 @@ bot.on("business_message", async (ctx) => {
 // Maxsus buyruqlar: /start, /musiqa, /rasm, /kod, /about
 bot.command("start", async (ctx) => {
   const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
-  const helpText = isGroup
+  const userIsAdmin = isAdmin(ctx);
+
+  const helpText = userIsAdmin
+    ? "👋 Assalomu alaykum, Abdulloh aka (Admin)! Barcha tizimlar to'liq nazoratingiz ostida. /kod buyrug'i orqali Clan kodini o'zgartirishingiz yoki boshqa amallarni bajarishingiz mumkin! 🚀"
+    : isGroup
     ? "👋 Assalomu alaykum!\n\nGuruhda menga Reply qilib istalgan savolingizni berishingiz, rasm/video/fayl tashlab tahlil qildirishingiz, rasm chizdirishingiz (/rasm), musiqa qidirishingiz (/musiqa) yoki Clan kodini olishingiz (/kod) mumkin! 🚀"
     : "👋 Assalomu alaykum!\n\nIstalgan mavzuda savollaringiz bo'lsa bemalol yozing, rasm yoki video yuborib to'liq tahlil qildiring, AI orqali rasm chizdiring (/rasm) yoki qo'shiq qidiring (/musiqa)! 🚀";
 
@@ -703,18 +761,21 @@ bot.command(["musiqa", "music", "mp3", "song"], async (ctx) => {
   }
 });
 
-// /rasm buyrug'i
+// /rasm buyrug'i (Flux / Nano Banana bilan)
 bot.command(["rasm", "image", "draw"], async (ctx) => {
   const text = ctx.message.text.trim();
   const parts = text.split(/\s+/);
 
   if (parts.length > 1) {
-    const promptText = parts.slice(1).join(" ");
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=1024&height=1024&nologo=true`;
+    const rawPrompt = parts.slice(1).join(" ");
+    const stopTyping = startTypingIndicator(ctx, false);
 
     try {
+      const enhancedPrompt = await enhancePromptWithGemini(rawPrompt);
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?model=flux&width=1024&height=1024&enhance=true&nologo=true`;
+
       await ctx.replyWithPhoto(imageUrl, {
-        caption: `🎨 *Siz so'ragan rasm:* _${promptText}_\n\nMarhamat! Yana boshqa rasm kerak bo'lsa bemalol ayting. ✨`,
+        caption: `🎨 *Siz so'ragan rasm:* _${rawPrompt}_\n\n✨ _Flux AI (Ultra-HD fotorealistik)_ orqali yaratildi!`,
         parse_mode: "Markdown",
         reply_parameters: {
           message_id: ctx.message.message_id,
@@ -723,6 +784,8 @@ bot.command(["rasm", "image", "draw"], async (ctx) => {
       });
     } catch (e) {
       await ctx.reply("Rasm yaratishda xatolik bo'ldi, qayta urinib ko'ring.");
+    } finally {
+      stopTyping();
     }
   } else {
     await ctx.reply(
@@ -738,28 +801,42 @@ bot.command(["rasm", "image", "draw"], async (ctx) => {
   }
 });
 
-// /kod buyrug'i
+// /kod buyrug'i (Adminlik tekshiruvi bilan)
 bot.command(["kod", "clankod", "setkod"], async (ctx) => {
   const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
+  const userIsAdmin = isAdmin(ctx);
   const text = ctx.message.text.trim();
   const parts = text.split(/\s+/);
 
+  // Agar yangi kod o'rnatilayotgan bo'lsa
   if (parts.length > 1) {
-    const newCode = parts.slice(1).join(" ");
-    setClanCode(newCode);
-    await ctx.reply(
-      `✅ *Clan kodi muvaffaqiyatli saqlandi!*\n\n` +
-      `🔑 *Yangi Clan kodi:* \`${newCode}\`\n\n` +
-      `Endi guruhda kimdir kod so'rasa, ushbu kod taqdim etiladi! 🔥`,
-      {
-        parse_mode: "Markdown",
-        reply_parameters: {
-          message_id: ctx.message.message_id,
-          allow_sending_without_reply: true,
-        },
-      }
-    );
-    return;
+    // Agar o'zgartiruvchi shaxs Admin (Abdulloh) bo'lsa
+    if (userIsAdmin) {
+      const newCode = parts.slice(1).join(" ");
+      setClanCode(newCode);
+      await ctx.reply(
+        `✅ *Assalomu alaykum Abdulloh aka!*\n\n🔑 *Clan kodi muvaffaqiyatli yangilandi:* \`${newCode}\`\n\nEndi guruhda kimdir kod so'rasa, ushbu yangi kod taqdim etiladi! 🔥`,
+        {
+          parse_mode: "Markdown",
+          reply_parameters: {
+            message_id: ctx.message.message_id,
+            allow_sending_without_reply: true,
+          },
+        }
+      );
+      return;
+    } else {
+      await ctx.reply(
+        "⚠️ Kechirasiz, Clan kodini faqat bot egasi (Abdulloh) o'zgartira oladi. 😊",
+        {
+          reply_parameters: {
+            message_id: ctx.message.message_id,
+            allow_sending_without_reply: true,
+          },
+        }
+      );
+      return;
+    }
   }
 
   if (!isGroup) {
@@ -776,7 +853,7 @@ bot.command(["kod", "clankod", "setkod"], async (ctx) => {
   await ctx.reply(
     `🎮 *Hozirgi Clan kodi:* \`${currentCode}\`\n\n` +
     `Marhamat, kodingizdan foydalanib clanga qo'shilishingiz mumkin! 🔥\n` +
-    `_(Kodni yangilash uchun: \`/kod <yangi_kod>\` deb yozing)_`,
+    `_(Kodni faqat admin o'zgartira oladi)_`,
     {
       parse_mode: "Markdown",
       reply_parameters: {
@@ -841,13 +918,14 @@ bot.on("message:sticker", async (ctx) => {
   }
 });
 
-// Video kelganda (Videodagi musiqani aniqlash)
+// Video kelganda
 bot.on(["message:video", "message:video_note"], async (ctx) => {
   const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
   const replyTo = ctx.message.reply_to_message;
   const caption = ctx.message.caption || "";
   const botUsername = ctx.me?.username?.toLowerCase() || "mrx_uzbot";
   const senderName = ctx.from?.first_name || "Foydalanuvchi";
+  const userIsAdmin = isAdmin(ctx);
 
   if (isGroup) {
     const isReplyToBot = replyTo?.from?.id === ctx.me?.id;
@@ -865,7 +943,8 @@ bot.on(["message:video", "message:video_note"], async (ctx) => {
 
     const aiAnswer = await generateAiResponse(
       `Foydalanuvchi video yubordi va quyidagicha so'radi/yozdi: "${promptInput}".\nVideodagi musiqani (qo'shiq nomi va ijrochisini) aniqlab, qisqa va aniq ma'lumot bering.`,
-      isGroup
+      isGroup,
+      userIsAdmin
     );
 
     await ctx.reply(aiAnswer, {
@@ -887,7 +966,7 @@ bot.on(["message:video", "message:video_note"], async (ctx) => {
   }
 });
 
-// Rasm (Photo) kelganda - Vision AI tahlili
+// Rasm (Photo) kelganda
 bot.on("message:photo", async (ctx) => {
   const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
   const replyTo = ctx.message.reply_to_message;
@@ -895,6 +974,7 @@ bot.on("message:photo", async (ctx) => {
   const caption = ctx.message.caption || "";
   const botUsername = ctx.me?.username?.toLowerCase() || "mrx_uzbot";
   const senderName = ctx.from?.first_name || "Foydalanuvchi";
+  const userIsAdmin = isAdmin(ctx);
 
   if (isGroup) {
     const isReplyToBot = replyTo?.from?.id === ctx.me?.id;
@@ -923,7 +1003,7 @@ bot.on("message:photo", async (ctx) => {
         userPrompt,
       ];
 
-      const aiAnswer = await generateAiResponse(payload, isGroup);
+      const aiAnswer = await generateAiResponse(payload, isGroup, userIsAdmin);
 
       await ctx.reply(aiAnswer, {
         reply_parameters: {
@@ -947,6 +1027,7 @@ bot.on("message:document", async (ctx) => {
   const caption = ctx.message.caption || "";
   const botUsername = ctx.me?.username?.toLowerCase() || "mrx_uzbot";
   const senderName = ctx.from?.first_name || "Foydalanuvchi";
+  const userIsAdmin = isAdmin(ctx);
 
   if (isGroup) {
     const isReplyToBot = replyTo?.from?.id === ctx.me?.id;
@@ -976,7 +1057,7 @@ bot.on("message:document", async (ctx) => {
         userPrompt,
       ];
 
-      const aiAnswer = await generateAiResponse(payload, isGroup);
+      const aiAnswer = await generateAiResponse(payload, isGroup, userIsAdmin);
 
       await ctx.reply(aiAnswer, {
         reply_parameters: {
@@ -1001,12 +1082,12 @@ bot.on("message:text", async (ctx) => {
   const messageText = ctx.message.text;
   const replyTo = ctx.message?.reply_to_message;
   const botUsername = ctx.me?.username?.toLowerCase() || "mrx_uzbot";
+  const userIsAdmin = isAdmin(ctx);
 
   if (senderId === ctx.me?.id) {
     return;
   }
 
-  // GURUHDA:
   if (isGroup) {
     const isReplyToBot = replyTo && replyTo.from?.id === ctx.me?.id;
     const isReplyToPhoto = replyTo && replyTo.photo && replyTo.photo.length > 0;
@@ -1042,7 +1123,7 @@ bot.on("message:text", async (ctx) => {
           userPrompt,
         ];
 
-        const aiAnswer = await generateAiResponse(payload, isGroup);
+        const aiAnswer = await generateAiResponse(payload, isGroup, userIsAdmin);
         await ctx.reply(aiAnswer, {
           reply_parameters: {
             message_id: ctx.message.message_id,
@@ -1053,14 +1134,15 @@ bot.on("message:text", async (ctx) => {
       }
     }
 
-    // 2. Rasm yaratish so'rovi bo'lsa
+    // 2. FLUX / Nano Banana Rasm yaratish so'rovi
     if (isImageRequest(messageText)) {
-      const promptText = extractImagePrompt(messageText);
-      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(promptText)}?width=1024&height=1024&nologo=true`;
+      const rawPrompt = extractImagePrompt(messageText);
+      const enhancedPrompt = await enhancePromptWithGemini(rawPrompt);
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?model=flux&width=1024&height=1024&enhance=true&nologo=true`;
 
       try {
         await ctx.replyWithPhoto(imageUrl, {
-          caption: `🎨 *Siz so'ragan rasm:* _${promptText}_\n\nMarhamat! Yana boshqa rasm kerak bo'lsa bemalol ayting. ✨`,
+          caption: `🎨 *Siz so'ragan rasm:* _${rawPrompt}_\n\n✨ _Flux AI (Ultra-HD fotorealistik)_ orqali yaratildi!`,
           parse_mode: "Markdown",
           reply_parameters: {
             message_id: ctx.message.message_id,
@@ -1073,7 +1155,7 @@ bot.on("message:text", async (ctx) => {
       }
     }
 
-    // 3. Musiqa qidirish so'rovi bo'lsa (To'liq MP3)
+    // 3. Musiqa qidirish so'rovi (To'liq MP3)
     if (isMusicRequest(messageText)) {
       const musicQuery = extractMusicQuery(messageText);
       if (musicQuery) {
@@ -1091,7 +1173,7 @@ bot.on("message:text", async (ctx) => {
       promptInput = messageText;
     }
 
-    const aiAnswer = await generateAiResponse(promptInput, isGroup);
+    const aiAnswer = await generateAiResponse(promptInput, isGroup, userIsAdmin);
 
     await ctx.reply(aiAnswer, {
       reply_parameters: {
@@ -1115,13 +1197,13 @@ bot.on("channel_post:text", async (ctx) => {
 
   if (postText.toLowerCase().includes(`@${botUsername}`) || postText.toLowerCase().includes("abdulloh")) {
     console.log(`[Kanal Posti: ${ctx.chat.title}]: ${postText}`);
-    const aiAnswer = await generateAiResponse(postText, true);
+    const aiAnswer = await generateAiResponse(postText, true, false);
     await ctx.reply(aiAnswer);
   }
 });
 
 // ==========================================
-// 9. CRASH VA XATOLIKLARDAN HIMOYA (24/7 Barqarorlik)
+// 11. CRASH VA XATOLIKLARDAN HIMOYA (24/7 Barqarorlik)
 // ==========================================
 bot.catch((err) => {
   const ctx = err.ctx;
@@ -1157,7 +1239,7 @@ process.once("SIGTERM", () => {
 });
 
 // ==========================================
-// 10. BOTNI ISHGA TUSHIRISH (Auto-reconnect loop & Set commands)
+// 12. BOTNI ISHGA TUSHIRISH (Auto-reconnect loop & Set commands)
 // ==========================================
 console.log("==========================================");
 console.log(" Telegram AI Bot 24/7 tizimi ishga tushmoqda...");
