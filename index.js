@@ -398,6 +398,30 @@ app.post("/api/bot-info", async (req, res) => {
   }
 });
 
+// Web Musiqa Qidiruv API
+app.get("/api/search-music", async (req, res) => {
+  try {
+    const q = req.query.q || "Konsta";
+    const tracks = await searchMusicList(q);
+    res.json({ success: true, tracks });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+// Web AI Rasm yaratish API
+app.post("/api/generate-image", async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) return res.status(400).json({ success: false, message: "Prompt kiritilmadi" });
+    const enhanced = await enhancePromptWithGemini(prompt);
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhanced)}?model=flux&width=1024&height=1024&enhance=true&nologo=true`;
+    res.json({ success: true, imageUrl, prompt: enhanced });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`[HTTP Cloud & Admin Server] ${PORT}-portda muvaffaqiyatli ishga tushdi.`);
 });
@@ -762,21 +786,132 @@ function extractMusicQuery(text) {
 }
 
 // ==========================================
-// 8. TIZIMLI PROMPT & AI JAVOB GENERATSIYASI
+// 8. REAL-TIME O'ZBEKISTON VAQTI VA OB-HAVO TIZIMI
 // ==========================================
 
-function getSystemPrompt(isGroup = false, userIsAdmin = false) {
+function getUzbekistanTime() {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString("uz-UZ", {
+    timeZone: "Asia/Tashkent",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
+  const dateStr = now.toLocaleDateString("uz-UZ", {
+    timeZone: "Asia/Tashkent",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+  });
+
+  return {
+    time: timeStr,
+    date: dateStr,
+    full: `${dateStr}, soat ${timeStr} (O'zbekiston / Toshkent vaqti, UTC+5)`,
+  };
+}
+
+const UZ_CITIES = {
+  andijon: { name: "Andijon", lat: 40.7821, lon: 72.3442 },
+  toshkent: { name: "Toshkent", lat: 41.2995, lon: 69.2401 },
+  samarqand: { name: "Samarqand", lat: 39.6270, lon: 66.9749 },
+  namangan: { name: "Namangan", lat: 40.9983, lon: 71.6726 },
+  fargona: { name: "Farg'ona", lat: 40.3842, lon: 71.7843 },
+  buxoro: { name: "Buxoro", lat: 39.7747, lon: 64.4286 },
+  xiva: { name: "Xiva", lat: 41.3783, lon: 60.3639 },
+  nukus: { name: "Nukus", lat: 42.4602, lon: 59.6073 },
+  qarshi: { name: "Qarshi", lat: 38.8606, lon: 65.7891 },
+  jizzax: { name: "Jizzax", lat: 40.1158, lon: 67.8422 },
+  guliston: { name: "Guliston", lat: 40.4897, lon: 68.7842 },
+  navoiy: { name: "Navoiy", lat: 40.0844, lon: 65.3792 },
+  termez: { name: "Termiz", lat: 37.2242, lon: 67.2783 },
+};
+
+function getWeatherDescription(code) {
+  if (code === 0) return "Musaffo, ochiq osmon (quyoshli) ☀️";
+  if (code === 1 || code === 2 || code === 3) return "Asosan ochiq, qisman bulutli ⛅️";
+  if (code === 45 || code === 48) return "Tumanli 🌫";
+  if (code >= 51 && code <= 55) return "Mayda yomg'ir yog'moqda 🌦";
+  if (code >= 61 && code <= 65) return "Yomg'irli havo 🌧";
+  if (code >= 71 && code <= 75) return "Qor yog'moqda ❄️";
+  if (code >= 80 && code <= 82) return "Kuchli yomg'ir / Jala 🌧";
+  if (code >= 95) return "Momaqaldiroqli havo ⛈";
+  return "Havo yaxshi";
+}
+
+async function getLiveWeather(text = "") {
+  let targetCity = UZ_CITIES.andijon;
+  const t = text.toLowerCase();
+
+  for (const [key, c] of Object.entries(UZ_CITIES)) {
+    if (t.includes(key) || t.includes(c.name.toLowerCase())) {
+      targetCity = c;
+      break;
+    }
+  }
+
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${targetCity.lat}&longitude=${targetCity.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=Asia%2FTashkent`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data && data.current) {
+      const cur = data.current;
+      const desc = getWeatherDescription(cur.weather_code);
+      return `\n📍 JORIY REAL OB-HAVO MA'LUMOTI (${targetCity.name}):\n• Harorat: ${cur.temperature_2m}°C (sezilishi: ${cur.apparent_temperature}°C)\n• Holati: ${desc}\n• Namlik darajasi: ${cur.relative_humidity_2m}%\n• Shamol tezligi: ${cur.wind_speed_10m} km/soat\n`;
+    }
+  } catch (e) {
+    console.error("Live weather fetch error:", e.message);
+  }
+
+  return "";
+}
+
+function isWeatherRequest(text) {
+  if (!text) return false;
+  const t = text.toLowerCase();
+  return (
+    t.includes("ob-havo") ||
+    t.includes("obhavo") ||
+    t.includes("ob havo") ||
+    t.includes("havo qanday") ||
+    t.includes("havo qanaqa") ||
+    t.includes("harorat") ||
+    t.includes("gradus") ||
+    t.includes("issiqmi") ||
+    t.includes("sovuqmi") ||
+    t.includes("yomg'ir") ||
+    t.includes("qor")
+  );
+}
+
+// ==========================================
+// 9. TIZIMLI PROMPT & AI JAVOB GENERATSIYASI
+// ==========================================
+
+function getSystemPrompt(isGroup = false, userIsAdmin = false, weatherContext = "") {
   const clanCode = getClanCode();
+  const uzTime = getUzbekistanTime();
 
   const adminNotice = userIsAdmin
     ? "MUHIM: Siz bilan hozir botning EGASI VA BOSHQARUVCHISI — Abdulloh Abdug'aniyev gaplashmoqda! Unga hurmat bilan, boshliqqa xizmat ko'rsatuvchi sodiq shaxsiy yordamchisi sifatida gaplashing."
     : "Siz bilan oddiy foydalanuvchi suhbatlashmoqda.";
+
+  const weatherInfo = weatherContext ? `\n${weatherContext}\n` : "";
 
   if (isGroup) {
     return `
 Siz Telegram guruhida xushmuomala, o'ta tezkor, aqlli va bilimdon yordamchisiz.
 ${adminNotice}
 
+REAL VAQT VA SANA (O'ZBEKISTON / TOSHKENT):
+- Hozirgi aniq O'zbekiston vaqti: ${uzTime.time} (UTC+5, Toshkent/Andijon)
+- Bugungi sana va kun: ${uzTime.date}
+- Agar foydalanuvchi soat necha bo'lganini yoki bugun qaysi kun ekanligini so'rasa, aynan shu O'zbekiston vaqtini ayting!
+${weatherInfo}
 GURUH QOIDALARI:
 1. CLAN KODI: Faqat guruh a'zolari so'raganida faol Clan kodini ayting: "${clanCode}".
 2. O'ZBEKISTON BOZORLARI NARXI VA DO'KONLARI:
@@ -785,19 +920,26 @@ GURUH QOIDALARI:
      * 💰 O'zbekiston bozorlaridagi real taxminiy narxi (so'mda va dollarda)
      * 📍 O'zbekistonda qayerda sotilishi (Uzum Market, OLX.uz, Abu Sahiy, Malika bozori, Asaxiy, Texnomart, Avtoelon va h.k.)
      * 🔗 Xarid qidiruv havolalari (masalan: Uzum Market: https://uzum.uz/uz/search?q=..., OLX: https://www.olx.uz/d/oz/q-.../)
-3. MA'LUMOT BERISH: Agar ma'lumot so'ralsa, qisqa, aniq, tushunarli va lo'nda qilib, asosiy jihatlarini emojilar bilan yoritib bering.
-4. EGASI HAQIDA (Faqat so'ralganda): Egasi — 14 yoshda, Andijon Shahrixon 2-maktab 9-sinf, KING SCHOOL'da Bobur Vahobov (UZMIND) o'quvchisi, dasturchi. Telefon raqamlarini bermang!
-5. MULOQOT: Xuddi haqiqiy do'stona insondek samimiy va jonli gaplashing.
+3. OB-HAVO MA'LUMOTI: Andijon yoki so'ralgan shahar bo'yicha berilgan real harorat va havo holatini aniq, tushunarli qilib ayting.
+4. MA'LUMOT BERISH: Agar ma'lumot so'ralsa, qisqa, aniq, tushunarli va lo'nda qilib, asosiy jihatlarini emojilar bilan yoritib bering.
+5. EGASI HAQIDA (Faqat so'ralganda): Egasi — 14 yoshda, Andijon Shahrixon 2-maktab 9-sinf, KING SCHOOL'da Bobur Vahobov (UZMIND) o'quvchisi, dasturchi. Telefon raqamlarini bermang!
+6. MULOQOT: Xuddi haqiqiy do'stona insondek samimiy va jonli gaplashing.
 `;
   } else {
     return `
 Siz shaxsiy chatda xuddi haqiqiy do'stdek samimiy, juda aqlli, o'ta tezkor va bilimdon inson sifatida gaplashuvchi yordamchisiz.
 ${adminNotice}
 
+REAL VAQT VA SANA (O'ZBEKISTON / TOSHKENT):
+- Hozirgi aniq O'zbekiston vaqti: ${uzTime.time} (UTC+5, Toshkent/Andijon)
+- Bugungi sana va kun: ${uzTime.date}
+- Agar foydalanuvchi soat necha bo'lganini yoki bugun qaysi kun ekanligini so'rasa, aynan shu O'zbekiston vaqtini ayting!
+${weatherInfo}
 SHAXSIY CHAT QOIDALARI (MUHIM):
 1. CLAN KODI HAQIDA UMUMAN GAPIRMANG: Shaxsiy chatlarda Clan kodi haqida hech narsa yozmang va "guruhdan olasiz" degan gaplarni ham mutlaqo ishlatmang.
 2. ISMNI DOIMIY TAKRORLAMANG: Har gapda "Men falonchining assistentiman" deb robotdek gapirmang. Haqiqiy inson suhbatlashayotgandek tabiiy gaplashing.
-3. O'ZBEKISTON BOZORLARIDAGI NARXLAR VA DO'KONLAR:
+3. OB-HAVO MA'LUMOTI: Andijon yoki so'ralgan viloyat bo'yicha berilgan real harorat, havo holati va tavsiyalarni chiroyli tushuntiring.
+4. O'ZBEKISTON BOZORLARIDAGI NARXLAR VA DO'KONLAR:
    - Rasm (butsi, mashina, kiyim, texnika, telefon) yoki mahsulot narxi so'ralsa:
      * 🏷 Mahsulotning aniq nomi va markasi
      * 💰 O'zbekistondagi real o'rtacha narxi (so'mda va dollarda)
@@ -806,16 +948,23 @@ SHAXSIY CHAT QOIDALARI (MUHIM):
        - Uzum Market: https://uzum.uz/uz/search?q={nomi}
        - OLX.uz: https://www.olx.uz/d/oz/q-{nomi}/
        - Asaxiy: https://asaxiy.uz/product?key={nomi}
-4. MA'LUMOT SO'RASHSA: U haqida qisqacha, aniq, tushunarli va lo'nda qilib barcha muhim xususiyatlarini yozing.
-5. EGASI HAQIDA (Faqat so'ralgandagina): Egasi — 14 yoshda, Andijon viloyati Shahrixon tumani 2-maktab 9-sinf o'quvchisi hamda KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, dasturchi. Telefon raqamlarini bermang!
-6. DO'STONA RUH: Foydalanuvchi bilan o'ta samimiy, do'stona va tezkor muloqot qiling.
+5. MA'LUMOT SO'RASHSA: U haqida qisqacha, aniq, tushunarli va lo'nda qilib barcha muhim xususiyatlarini yozing.
+6. EGASI HAQIDA (Faqat so'ralgandagina): Egasi — 14 yoshda, Andijon viloyati Shahrixon tumani 2-maktab 9-sinf o'quvchisi hamda KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, dasturchi. Telefon raqamlarini bermang!
+7. DO'STONA RUH: Foydalanuvchi bilan o'ta samimiy, do'stona va tezkor muloqot qiling.
 `;
   }
 }
 
-async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin = false) {
+async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin = false, queryTextForWeather = "") {
   let lastError = null;
-  const prompt = getSystemPrompt(isGroup, userIsAdmin);
+  let weatherContext = "";
+
+  const textToCheck = typeof contentPayload === "string" ? contentPayload : queryTextForWeather;
+  if (isWeatherRequest(textToCheck)) {
+    weatherContext = await getLiveWeather(textToCheck);
+  }
+
+  const prompt = getSystemPrompt(isGroup, userIsAdmin, weatherContext);
   const contents = Array.isArray(contentPayload) ? contentPayload : [contentPayload];
 
   for (const modelName of AI_MODELS) {
@@ -1627,7 +1776,7 @@ bot.on("message:text", async (ctx) => {
       promptInput = messageText;
     }
 
-    const aiAnswer = await generateAiResponse(promptInput, isGroup, userIsAdmin);
+    const aiAnswer = await generateAiResponse(promptInput, isGroup, userIsAdmin, messageText);
 
     await ctx.reply(aiAnswer, {
       reply_parameters: {
