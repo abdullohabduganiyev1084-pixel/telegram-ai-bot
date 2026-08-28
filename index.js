@@ -104,7 +104,7 @@ function getRandomEmoji() {
 }
 
 // ==========================================
-// 4. INTERAKTIV MUSIQA QIDIRUV TIZIMI
+// 4. TO'LIQ ORIGINAL MUSIQA QIDIRUV TIZIMI (Full Length MP3)
 // ==========================================
 const musicCache = new Map();
 
@@ -118,35 +118,78 @@ setInterval(() => {
   }
 }, 600000);
 
-// Musiqa qidiruvchi (Deezer & iTunes API orqali eng yaxshi 5 ta trek)
+// Musiqa qidiruvchi (To'liq original MP3 larni izlash)
 async function searchMusicList(query) {
   const cleanQ = query.trim();
   const results = [];
 
-  // 1. Deezer API
+  // 1. To'liq original MP3 lar bazasidan qidirish (Muzfm Full MP3)
   try {
-    const res = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(cleanQ)}&limit=5`);
-    const data = await res.json();
-    if (data && data.data && Array.isArray(data.data)) {
-      for (const t of data.data) {
-        if (t.preview) {
-          results.push({
-            id: t.id,
-            title: t.title,
-            artist: t.artist?.name || "Noma'lum ijrochi",
-            audioUrl: t.preview,
-            duration: t.duration,
-            ytSearchUrl: `https://music.youtube.com/search?q=${encodeURIComponent(t.title + " " + (t.artist?.name || ""))}`,
-            spotifyUrl: `https://open.spotify.com/search/${encodeURIComponent(t.title + " " + (t.artist?.name || ""))}`,
-          });
-        }
+    const searchUrl = `https://muzfm.tv/search?q=${encodeURIComponent(cleanQ)}`;
+    const res = await fetch(searchUrl, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" } });
+    const html = await res.text();
+    const songRegex = /<a[^>]+href="(https:\/\/muzfm\.uz\/music\/[^"]+)"[^>]*>([^<]+)<\/a>/gi;
+    const candidates = [];
+    let match;
+    const seen = new Set();
+    while ((match = songRegex.exec(html)) !== null && candidates.length < 5) {
+      const pageUrl = match[1];
+      const title = match[2].replace(/&#039;/g, "'").replace(/&amp;/g, "&").trim();
+      if (!seen.has(pageUrl) && title.length > 2) {
+        seen.add(pageUrl);
+        candidates.push({ pageUrl, title });
       }
     }
+
+    for (const c of candidates) {
+      try {
+        const pageRes = await fetch(c.pageUrl, { headers: { "User-Agent": "Mozilla/5.0" } });
+        const pageHtml = await pageRes.text();
+        const mp3Match = pageHtml.match(/(https:\/\/muzfm\.uz\/storage\/uploads\/music\/[^\s"']+\.mp3)/i);
+        if (mp3Match) {
+          results.push({
+            id: Math.random().toString(36).substring(2, 8),
+            title: c.title,
+            artist: "Original Format",
+            audioUrl: mp3Match[1],
+            isFull: true,
+            ytSearchUrl: `https://music.youtube.com/search?q=${encodeURIComponent(c.title)}`,
+            spotifyUrl: `https://open.spotify.com/search/${encodeURIComponent(c.title)}`,
+          });
+        }
+      } catch (e) {}
+    }
   } catch (e) {
-    console.error("Deezer search error:", e.message);
+    console.error("Muzfm full search error:", e.message);
   }
 
-  // 2. iTunes API (Agar Deezer kam topsa)
+  // 2. Deezer API (Agar qo'shimcha kerak bo'lsa)
+  if (results.length < 3) {
+    try {
+      const res = await fetch(`https://api.deezer.com/search?q=${encodeURIComponent(cleanQ)}&limit=5`);
+      const data = await res.json();
+      if (data && data.data && Array.isArray(data.data)) {
+        for (const t of data.data) {
+          if (t.preview && !results.some((r) => r.title.toLowerCase() === t.title.toLowerCase())) {
+            results.push({
+              id: t.id,
+              title: t.title,
+              artist: t.artist?.name || "Noma'lum ijrochi",
+              audioUrl: t.preview,
+              duration: t.duration,
+              isFull: false,
+              ytSearchUrl: `https://music.youtube.com/search?q=${encodeURIComponent(t.title + " " + (t.artist?.name || ""))}`,
+              spotifyUrl: `https://open.spotify.com/search/${encodeURIComponent(t.title + " " + (t.artist?.name || ""))}`,
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Deezer search error:", e.message);
+    }
+  }
+
+  // 3. iTunes API (Agar hali ham kam bo'lsa)
   if (results.length < 3) {
     try {
       const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(cleanQ)}&media=music&limit=5`);
@@ -160,6 +203,7 @@ async function searchMusicList(query) {
               artist: t.artistName || "Noma'lum ijrochi",
               audioUrl: t.previewUrl,
               duration: 30,
+              isFull: false,
               ytSearchUrl: `https://music.youtube.com/search?q=${encodeURIComponent(t.trackName + " " + (t.artistName || ""))}`,
               spotifyUrl: `https://open.spotify.com/search/${encodeURIComponent(t.trackName + " " + (t.artistName || ""))}`,
             });
@@ -202,15 +246,14 @@ async function sendInteractiveMusicMenu(ctx, queryText, isBusiness = false) {
 
   let menuText = `🎧 *"${queryText}" bo'yicha topilgan qo'shiqlar:*\n\n`;
   tracks.forEach((t, i) => {
-    menuText += `${i + 1}️⃣ *${t.title}* — _${t.artist}_\n`;
+    menuText += `${i + 1}️⃣ *${t.title}* ${t.isFull ? "🔥 _(To'liq Original MP3)_" : "🎵"}\n`;
   });
   menuText += `\n👇 *Eshitish va yuklab olish uchun quyidagi tugmalardan birini bosing:*`;
 
   const keyboard = new InlineKeyboard();
   tracks.forEach((t, i) => {
-    const shortTitle = t.title.length > 18 ? t.title.substring(0, 18) + ".." : t.title;
-    const shortArtist = t.artist.length > 12 ? t.artist.substring(0, 12) + ".." : t.artist;
-    keyboard.text(`${i + 1}️⃣ ${shortTitle} (${shortArtist})`, `mus:${searchId}:${i}`).row();
+    const shortTitle = t.title.length > 20 ? t.title.substring(0, 20) + ".." : t.title;
+    keyboard.text(`${i + 1}️⃣ ${shortTitle}`, `mus:${searchId}:${i}`).row();
   });
 
   if (isBusiness) {
@@ -595,7 +638,7 @@ bot.on("business_message", async (ctx) => {
         }
       }
 
-      // C) Musiqa qidirish
+      // C) Musiqa qidirish (To'liq MP3)
       if (isMusicRequest(messageText)) {
         const musicQuery = extractMusicQuery(messageText);
         if (musicQuery) {
@@ -648,7 +691,7 @@ bot.command(["musiqa", "music", "mp3", "song"], async (ctx) => {
     await sendInteractiveMusicMenu(ctx, query, false);
   } else {
     await ctx.reply(
-      "🎵 *Musiqa qidirish:* `/musiqa <qo'shiq nomi yoki ijrochi>` deb yozing.\n\n_Masalan:_ `/musiqa Konsta insonlar` yoki `/musiqa Eminem without me`\n\nYoki shunchaki chatda *\"Konsta musiqasini topib ber\"* deb yozishingiz mumkin! 🎧",
+      "🎵 *Musiqa qidirish:* `/musiqa <qo'shiq nomi yoki ijrochi>` deb yozing.\n\n_Masalan:_ `/musiqa Shohruhxon` yoki `/musiqa Konsta insonlar`\n\nYoki shunchaki chatda *\"Konsta musiqasini topib ber\"* deb yozishingiz mumkin! 🎧",
       {
         parse_mode: "Markdown",
         reply_parameters: {
@@ -820,7 +863,6 @@ bot.on(["message:video", "message:video_note"], async (ctx) => {
     console.log(`[Video tahlil qilinmoqda -> From: ${senderName}]`);
     const promptInput = caption || "Ushbu videodagi musiqa yoki qo'shiqni aniqlab bering.";
 
-    // Gemini orqali videodagi ehtimoliy qo'shiqni aniqlash
     const aiAnswer = await generateAiResponse(
       `Foydalanuvchi video yubordi va quyidagicha so'radi/yozdi: "${promptInput}".\nVideodagi musiqani (qo'shiq nomi va ijrochisini) aniqlab, qisqa va aniq ma'lumot bering.`,
       isGroup
@@ -833,7 +875,6 @@ bot.on(["message:video", "message:video_note"], async (ctx) => {
       },
     });
 
-    // Agar videoda ma'lum bir qo'shiq nomi aytilgan bo'lsa, qidiruvni ham taklif qilish
     const words = caption.split(/\s+/).filter(w => w.length > 2);
     if (words.length > 0) {
       const q = words.slice(0, 3).join(" ");
@@ -898,7 +939,7 @@ bot.on("message:photo", async (ctx) => {
   }
 });
 
-// Hujjatlar / Fayllar (Document / Text / Code / PDF)
+// Hujjatlar / Fayllar
 bot.on("message:document", async (ctx) => {
   const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
   const replyTo = ctx.message.reply_to_message;
@@ -1032,7 +1073,7 @@ bot.on("message:text", async (ctx) => {
       }
     }
 
-    // 3. Musiqa qidirish so'rovi bo'lsa (Oddiy so'z bilan yoki /musiqa)
+    // 3. Musiqa qidirish so'rovi bo'lsa (To'liq MP3)
     if (isMusicRequest(messageText)) {
       const musicQuery = extractMusicQuery(messageText);
       if (musicQuery) {
@@ -1127,7 +1168,7 @@ bot.start({
     console.log(`[Bot Online] @${botInfo.username} muvaffaqiyatli ishga tushdi!`);
     try {
       await bot.api.setMyCommands([
-        { command: "musiqa", description: "🎵 Musiqa qidirish va MP3 yuklash" },
+        { command: "musiqa", description: "🎵 Musiqa qidirish va to'liq MP3 yuklash" },
         { command: "rasm", description: "🎨 AI orqali rasm chizish / yaratish" },
         { command: "kod", description: "🔑 Clan kodini ko'rish va yangilash" },
         { command: "about", description: "👨‍💻 Bot egasi haqida ma'lumot" },
