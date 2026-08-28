@@ -1339,6 +1339,34 @@ bot.command("clanrasmi", async (ctx) => {
   }
 });
 
+// /clan buyrug'i - Admin uchun clan rasmi va kodini birgalikda o'rnatish
+bot.command("clan", async (ctx) => {
+  if (!isAdmin(ctx)) {
+    await ctx.reply("⚠️ Kechirasiz, bu buyruq faqat bot administratori (Abdulloh) uchun ochiq!", {
+      reply_parameters: {
+        message_id: ctx.message.message_id,
+        allow_sending_without_reply: true,
+      },
+    });
+    return;
+  }
+
+  const userId = ctx.from?.id;
+  if (userId) {
+    adminState.set(userId, "WAITING_CLAN_PHOTO_AND_TEXT");
+    await ctx.reply(
+      "📷 *Abdulloh aka, iltimos, klan rasmini yuboring va uning izohiga (caption) yangi clan kodini (text) yozib yuboring!* 🚀",
+      {
+        parse_mode: "Markdown",
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+          allow_sending_without_reply: true,
+        },
+      }
+    );
+  }
+});
+
 // Maxsus buyruqlar: /start, /admin, /musiqa, /rasm, /kod, /about
 bot.command("start", async (ctx) => {
   const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
@@ -1737,13 +1765,24 @@ bot.on("message:photo", async (ctx) => {
   const userIsAdmin = isAdmin(ctx);
 
   const senderId = ctx.from?.id;
-  if (senderId && isAdmin(ctx) && adminState.get(senderId) === "WAITING_CLAN_PHOTO") {
+  const state = senderId ? adminState.get(senderId) : null;
+  if (senderId && isAdmin(ctx) && (state === "WAITING_CLAN_PHOTO" || state === "WAITING_CLAN_PHOTO_AND_TEXT")) {
     const highestPhoto = photo[photo.length - 1];
     setClanPhoto(highestPhoto.file_id);
+    
+    let savedCode = getClanCode();
+    if (caption && caption.trim()) {
+      savedCode = caption.trim();
+      setClanCode(savedCode);
+    }
+    
     adminState.delete(senderId);
 
     await ctx.reply(
-      "✅ *Muvaffaqiyatli saqlandi!*\n\n📸 Yangi klan rasmi saqlandi. Endi guruhda kimdir klan kodini so'rasa, ushbu rasm taqdim etiladi! 🚀",
+      `✅ *Klan rasmi va kodi muvaffaqiyatli saqlandi!*\n\n` +
+      `📸 *Rasm:* Saqlandi\n` +
+      `🔑 *Clan kodi:* \`${savedCode}\`\n\n` +
+      `Endi guruhda kimdir klan kodini so'rasa, ushbu rasm pastida o'rnatilgan kod bilan birga yuboriladi! 🚀`,
       {
         parse_mode: "Markdown",
         reply_parameters: {
