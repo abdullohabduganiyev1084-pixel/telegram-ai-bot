@@ -155,26 +155,33 @@ const ADMIN_HTML = `<!DOCTYPE html>
               <i class="fas fa-key text-base"></i>
             </div>
             <div>
-              <h2 class="font-extrabold text-white text-sm">Guruh Clan Kodi</h2>
-              <p class="text-[10px] text-slate-400">Faqat guruhlarda so'ralganda beriladi</p>
+              <h2 class="font-extrabold text-white text-sm">Clan Sozlamalari</h2>
+              <p class="text-[10px] text-slate-400">Guruh kodi va rasmini boshqarish</p>
             </div>
           </div>
-          <span class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30 font-mono">Faol Kod</span>
+          <span class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30 font-mono">Faol</span>
         </div>
         <div class="space-y-2">
           <label class="text-xs text-slate-300 font-semibold flex items-center justify-between">
-            <span>Hozirgi Clan Kodi:</span>
+            <span>Clan Kodi (Matn):</span>
             <span id="clanLastUpdated" class="text-[10px] text-slate-500">Yuklanmoqda...</span>
           </label>
           <div class="relative">
-            <input type="text" id="inputClanCode" placeholder="Yangi kodni yozing..." class="w-full bg-slate-950/90 border-2 border-indigo-500/40 rounded-2xl px-4 py-3.5 text-indigo-300 font-extrabold text-center tracking-widest text-2xl focus:outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/20 transition-all font-mono" />
-            <button onclick="copyCode()" class="absolute right-3.5 top-3.5 text-slate-400 hover:text-white p-1.5 transition-colors" title="Nusxalash">
+            <input type="text" id="inputClanCode" placeholder="Yangi kodni yozing..." class="w-full bg-slate-950/90 border border-slate-800 rounded-2xl px-4 py-3 text-indigo-300 font-extrabold text-center tracking-widest text-xl focus:outline-none focus:border-indigo-500 transition-all font-mono" />
+            <button onclick="copyCode()" class="absolute right-3.5 top-3 text-slate-400 hover:text-white p-1.5 transition-colors" title="Nusxalash">
               <i class="far fa-copy text-base"></i>
             </button>
           </div>
         </div>
+        <div class="space-y-2">
+          <label class="text-xs text-slate-300 font-semibold flex items-center justify-between">
+            <span>Clan Rasmi (Telegram File ID yoki URL):</span>
+            <span class="text-[10px] text-slate-500 font-normal">Izohli rasm uchun</span>
+          </label>
+          <input type="text" id="inputClanPhoto" placeholder="Telegram file_id yoki rasm havolasini yozing..." class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500" />
+        </div>
         <button id="btnSaveClan" onclick="submitNewClanCode()" class="w-full btn-gradient text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 text-sm shadow-lg">
-          <i class="fas fa-check-circle text-base"></i><span>Kodni Saqlash va E'lon Qilish</span>
+          <i class="fas fa-check-circle text-base"></i><span>Klan Rasm va Kodini Saqlash</span>
         </button>
       </div>
     </div>
@@ -268,6 +275,7 @@ const ADMIN_HTML = `<!DOCTYPE html>
         const res = await fetch('/api/status');
         const data = await res.json();
         if (data.clan_code) document.getElementById('inputClanCode').value = data.clan_code;
+        if (data.clan_photo) document.getElementById('inputClanPhoto').value = data.clan_photo;
         if (data.uptime) document.getElementById('stat-uptime').innerText = data.uptime;
         if (data.bot_name) document.getElementById('inputBotName').value = data.bot_name;
         if (data.bot_description) document.getElementById('inputBotDesc').value = data.bot_description;
@@ -277,16 +285,17 @@ const ADMIN_HTML = `<!DOCTYPE html>
 
     async function submitNewClanCode() {
       const code = document.getElementById('inputClanCode').value.trim();
+      const photo = document.getElementById('inputClanPhoto').value.trim();
       const btn = document.getElementById('btnSaveClan');
       if (!code) { showToast("Kodni bo'sh qoldirib bo'lmaydi!", true); return; }
       btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saqlanmoqda...';
       try {
-        const res = await fetch('/api/clan-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clan_code: code, admin_id: 8255294502 }) });
+        const res = await fetch('/api/clan-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clan_code: code, clan_photo: photo, admin_id: 8255294502 }) });
         const data = await res.json();
-        if (data.success) { showToast('✅ Yangi Clan kodi saqlandi: ' + code); document.getElementById('clanLastUpdated').innerText = "Hozirgina yangilandi!"; if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); }
+        if (data.success) { showToast('✅ Clan kodi va rasmi saqlandi!'); document.getElementById('clanLastUpdated').innerText = "Hozirgina yangilandi!"; if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); }
         else { showToast("Xatolik: " + (data.message || "Saqlanmadi"), true); }
       } catch (e) { showToast("Server bilan aloqa xatoligi", true); }
-      finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check-circle text-base"></i> <span>Kodni Saqlash va E\\'lon Qilish</span>'; }
+      finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check-circle text-base"></i> <span>Klan Rasm va Kodini Saqlash</span>'; }
     }
 
     async function submitBotInfo() {
@@ -363,21 +372,25 @@ app.get("/api/status", async (req, res) => {
     bot_description: botDescription,
     uptime: `${hours}h ${minutes}m ${seconds}s`,
     clan_code: getClanCode(),
+    clan_photo: getClanPhoto(),
     admin: "Abdulloh Abdug'aniyev",
     admin_id: 8255294502,
     updated_at: new Date().toISOString(),
   });
 });
 
-// Clan kodini yangilash API
+// Clan kodini va rasmini yangilash API
 app.post("/api/clan-code", (req, res) => {
-  const { clan_code } = req.body;
+  const { clan_code, clan_photo } = req.body;
   if (!clan_code) {
     return res.status(400).json({ success: false, message: "Kod kiritilmadi" });
   }
 
   setClanCode(clan_code.trim());
-  res.json({ success: true, clan_code: clan_code.trim() });
+  if (clan_photo !== undefined) {
+    setClanPhoto(clan_photo.trim());
+  }
+  res.json({ success: true, clan_code: clan_code.trim(), clan_photo: getClanPhoto() });
 });
 
 // Bot ma'lumotlarini (Nomi, Tavsifi) yangilash API
@@ -953,6 +966,12 @@ MULOQOT VA SALOMLASHISH QOIDALARI:
 - Agar foydalanuvchi salomlashmagan bo'lsa, suhbatni to'g'ridan-to'g'ri savolga javob berishdan boshlang.
 - Vaqt yoki ob-havo ma'lumotlarini faqat foydalanuvchi so'ragandagina javobga qo'shing, so'ramasa o'zingizdan o'zingiz qo'shmang.
 
+EGASI VA YARATUVCHISI HAQIDA MUHIM QOIDA:
+- Agar kimdir oddiygina 'kim bu?', 'buni kim yaratgan?', 'kim yaratgan bu botni?', 'yaratuvchisi kim?', 'avtori kim?' deb so'rasa, FAQAT va FAQAT ismini aytib qo'ying: 'Abdulloh Abdug'aniyev'. Uning yoshi, maktabi, qayerdanligi kabi hech qanday shaxsiy ma'lumotlarni mutlaqo yozmang!
+- Agarda foydalanuvchi aynan 'Abdulloh haqida ma'lumot ber' yoki 'egasi haqida ma'lumot ber' deb aniq va batafsil so'rasagina, quyidagi to'liq ma'lumotni bering:
+  'U hozir band, chunki dam olish vaqtida. Egasi — Abdulloh Abdug'aniyev, 15 yoshda, Andijon viloyati Shahrixon tumanidan, 2-maktab 9-sinf o'quvchisi va KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-Stack dasturchi.'
+- Telefon raqamlarini hech qachon bermang!
+
 GURUH QOIDALARI:
 1. CLAN KODI: Faqat guruh a'zolari so'raganida faol Clan kodini ayting: "${clanCode}".
 2. O'ZBEKISTON BOZORLARI NARXI VA DO'KONLARI:
@@ -963,8 +982,7 @@ GURUH QOIDALARI:
      * 🔗 Xarid qidiruv havolalari (masalan: Uzum Market: https://uzum.uz/uz/search?q=..., OLX: https://www.olx.uz/d/oz/q-.../)
 3. OB-HAVO MA'LUMOTI: Andijon yoki so'ralgan shahar bo'yicha berilgan real harorat va havo holatini aniq, tushunarli qilib ayting.
 4. MA'LUMOT BERISH: Agar ma'lumot so'ralsa, qisqa, aniq, tushunarli va lo'nda qilib, asosiy jihatlarini emojilar bilan yoritib bering.
-5. EGASI (ADMIN) HAQIDA: Egasi — 15 yoshda, Andijon Shahrixon 2-maktab 9-sinf, KING SCHOOL'da Bobur Vahobov (UZMIND) o'quvchisi, dasturchi. Agar foydalanuvchilar egasi yoki admin haqida so'rasa, mutlaqo har doim birinchi bo'lib: "U hozir band, chunki dam olish vaqtida" deb ayting, keyin boshqa ma'lumotlarni yozing. Telefon raqamlarini bermang!
-6. MULOQOT: Xuddi haqiqiy do'stona insondek samimiy va jonli gaplashing.
+5. MULOQOT: Xuddi haqiqiy do'stona insondek samimiy va jonli gaplashing.
 `;
   } else {
     return `
@@ -981,6 +999,12 @@ MULOQOT VA SALOMLASHISH QOIDALARI:
 - Agar foydalanuvchi salomlashmagan bo'lsa, suhbatni to'g'ridan-to'g'ri savolga javob berishdan boshlang.
 - Vaqt yoki ob-havo ma'lumotlarini faqat foydalanuvchi so'ragandagina javobga qo'shing, so'ramasa o'zingizdan o'zingiz qo'shmang.
 
+EGASI VA YARATUVCHISI HAQIDA MUHIM QOIDA:
+- Agar kimdir oddiygina 'kim bu?', 'buni kim yaratgan?', 'kim yaratgan bu botni?', 'yaratuvchisi kim?', 'avtori kim?' deb so'rasa, FAQAT va FAQAT ismini aytib qo'ying: 'Abdulloh Abdug'aniyev'. Uning yoshi, maktabi, qayerdanligi kabi hech qanday shaxsiy ma'lumotlarni mutlaqo yozmang!
+- Agarda foydalanuvchi aynan 'Abdulloh haqida ma'lumot ber' yoki 'egasi haqida ma'lumot ber' deb aniq va batafsil so'rasagina, quyidagi to'liq ma'lumotni bering:
+  'U hozir band, chunki dam olish vaqtida. Egasi — Abdulloh Abdug'aniyev, 15 yoshda, Andijon viloyati Shahrixon tumanidan, 2-maktab 9-sinf o'quvchisi va KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-Stack dasturchi.'
+- Telefon raqamlarini hech qachon bermang!
+
 SHAXSIY CHAT QOIDALARI (MUHIM):
 1. CLAN KODI HAQIDA UMUMAN GAPIRMANG: Shaxsiy chatlarda Clan kodi haqida hech narsa yozmang va "guruhdan olasiz" degan gaplarni ham mutlaqo ishlatmang.
 2. ISMNI DOIMIY TAKRORLAMANG: Har gapda "Men falonchining assistentiman" deb robotdek gapirmang. Haqiqiy inson suhbatlashayotgandek tabiiy gaplashing.
@@ -994,9 +1018,8 @@ SHAXSIY CHAT QOIDALARI (MUHIM):
        - Uzum Market: https://uzum.uz/uz/search?q={nomi}
        - OLX.uz: https://www.olx.uz/d/oz/q-{nomi}/
        - Asaxiy: https://asaxiy.uz/product?key={nomi}
-5. MA'LUMOT SO'RASHSA: U haqida qisqacha, aniq, tushunarli va lo'nda qilib barcha muhim xususiyatlarini yozing.
-6. EGASI (ADMIN) HAQIDA: Egasi — 15 yoshda, Andijon viloyati Shahrixon tumani 2-maktab 9-sinf o'quvchisi hamda KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, dasturchi. Agar foydalanuvchilar egasi yoki admin haqida so'rasa, mutlaqo har doim birinchi bo'lib: "U hozir band, chunki dam olish vaqtida" deb ayting, keyin boshqa ma'lumotlarni yozing. Telefon raqamlarini bermang!
-7. DO'STONA RUH: Foydalanuvchi bilan o'ta samimiy, do'stona va tezkor muloqot qiling.
+5. MA'LUMOT SO'RASHSA: U haqida qisqacha, aniq, tushunarli va lo'nda qilib barcha miqdoriy bo'lmagan ma'lumotlarni yozing.
+6. DO'STONA RUH: Foydalanuvchi bilan o'ta samimiy, do'stona va tezkor muloqot qiling.
 `;
   }
 }
