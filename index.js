@@ -72,14 +72,17 @@ const ADMIN_HTML = `<!DOCTYPE html>
 
     <!-- TABS -->
     <div class="glass-card rounded-2xl p-1.5 flex gap-1 text-xs font-semibold overflow-x-auto">
-      <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn active flex-1 py-2 px-2.5 rounded-xl text-center flex items-center justify-center gap-1.5 transition-all">
+      <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn active flex-1 py-2 px-1.5 rounded-xl text-center flex items-center justify-center gap-1 transition-all">
         <i class="fas fa-chart-pie"></i><span>Boshqaruv</span>
       </button>
-      <button onclick="switchTab('clan')" id="tab-clan" class="tab-btn flex-1 py-2 px-2.5 rounded-xl text-center flex items-center justify-center gap-1.5 text-slate-400 border border-transparent transition-all">
-        <i class="fas fa-key"></i><span>Clan Kodi</span>
+      <button onclick="switchTab('clan')" id="tab-clan" class="tab-btn flex-1 py-2 px-1.5 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
+        <i class="fas fa-key"></i><span>Clan</span>
       </button>
-      <button onclick="switchTab('botinfo')" id="tab-botinfo" class="tab-btn flex-1 py-2 px-2.5 rounded-xl text-center flex items-center justify-center gap-1.5 text-slate-400 border border-transparent transition-all">
-        <i class="fas fa-robot"></i><span>Bot Sozlamalari</span>
+      <button onclick="switchTab('botinfo')" id="tab-botinfo" class="tab-btn flex-1 py-2 px-1.5 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
+        <i class="fas fa-robot"></i><span>Bot</span>
+      </button>
+      <button onclick="switchTab('aistudio')" id="tab-aistudio" class="tab-btn flex-1 py-2 px-1.5 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
+        <i class="fas fa-wand-magic-sparkles"></i><span>AI Studio</span>
       </button>
     </div>
 
@@ -244,6 +247,61 @@ const ADMIN_HTML = `<!DOCTYPE html>
       </div>
     </div>
 
+    <!-- TAB 4: AI STUDIO -->
+    <div id="view-aistudio" class="space-y-4 tab-content hidden">
+      <!-- 🎨 Flux AI Section -->
+      <div class="glass-card rounded-3xl p-5 space-y-4">
+        <div class="flex items-center space-x-2.5 border-b border-slate-700/60 pb-3">
+          <div class="w-9 h-9 rounded-xl bg-pink-500/20 flex items-center justify-center text-pink-400">
+            <i class="fas fa-wand-magic-sparkles text-base"></i>
+          </div>
+          <div>
+            <h2 class="font-extrabold text-white text-sm">Flux AI Studio</h2>
+            <p class="text-[10px] text-slate-400">Professional ultra-HD rasm generatori</p>
+          </div>
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-xs text-slate-300 font-semibold">Rasm uchun tavsif (Prompt):</label>
+          <textarea id="webImagePrompt" rows="2" placeholder="Masalan: neon kiberpank uslubidagi mushuk..." class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500"></textarea>
+        </div>
+        <button id="btnWebDraw" onclick="webDrawImage()" class="w-full btn-gradient text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-sm shadow-md">
+          <i class="fas fa-palette"></i><span>Rasm Yaratish (Flux)</span>
+        </button>
+        <div id="webDrawResult" class="hidden space-y-3 pt-2">
+          <div class="rounded-2xl border border-slate-700 overflow-hidden relative bg-slate-950">
+            <img id="webGeneratedImg" src="" alt="AI Generated Image" class="w-full h-auto block" />
+          </div>
+          <a id="webDownloadBtn" href="" download="flux-image.jpg" target="_blank" class="w-full bg-slate-800 border border-slate-700 text-slate-200 font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs transition-colors hover:bg-slate-700">
+            <i class="fas fa-download"></i><span>Rasmni Yuklab Olish</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- 🎵 Music search Section -->
+      <div class="glass-card rounded-3xl p-5 space-y-4">
+        <div class="flex items-center space-x-2.5 border-b border-slate-700/60 pb-3">
+          <div class="w-9 h-9 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+            <i class="fas fa-music text-base"></i>
+          </div>
+          <div>
+            <h2 class="font-extrabold text-white text-sm">MP3 Musiqa Studio</h2>
+            <p class="text-[10px] text-slate-400">Original to'liq MP3 qo'shiqlar qidiruvi</p>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <input type="text" id="webMusicQuery" placeholder="Qo'shiq nomi..." class="flex-1 bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500" />
+          <button id="btnWebMusic" onclick="webSearchMusic()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors flex items-center justify-center">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+        <div id="webMusicPlayer" class="hidden bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 space-y-2">
+          <p id="webPlayingTitle" class="text-xs font-bold text-indigo-300 font-mono text-center truncate"></p>
+          <audio id="webAudioElement" controls class="w-full"></audio>
+        </div>
+        <div id="webMusicResults" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
+      </div>
+    </div>
+
     <!-- TOAST -->
     <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 max-w-xs w-full bg-slate-900/95 border border-indigo-500/50 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl text-center hidden z-50"></div>
     <p class="text-center text-[10px] text-slate-500 pt-3">© 2026 Abdulloh Abdug'aniyev • Maxsus Mini Ilova</p>
@@ -327,6 +385,91 @@ const ADMIN_HTML = `<!DOCTYPE html>
         document.getElementById('pingBadge').innerText = ms + 'ms';
         showToast('⚡️ Server javob tezligi: ' + ms + 'ms');
       } catch (e) { showToast("Serverga ulanib bo'lmadi", true); }
+    }
+
+    async function webDrawImage() {
+      const prompt = document.getElementById('webImagePrompt').value.trim();
+      const btn = document.getElementById('btnWebDraw');
+      const resultDiv = document.getElementById('webDrawResult');
+      const img = document.getElementById('webGeneratedImg');
+      const downloadBtn = document.getElementById('webDownloadBtn');
+      
+      if (!prompt) { showToast("Prompt yozing!", true); return; }
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Rasm chizilmoqda...';
+      resultDiv.classList.add('hidden');
+      
+      try {
+        const res = await fetch('/api/generate-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt })
+        });
+        const data = await res.json();
+        if (data.success && data.imageUrl) {
+          img.src = data.imageUrl;
+          downloadBtn.href = data.imageUrl;
+          resultDiv.classList.remove('hidden');
+          showToast("🎨 Rasm muvaffaqiyatli chizildi!");
+        } else {
+          showToast("Xatolik bo'ldi", true);
+        }
+      } catch (e) {
+        showToast("Aloqa xatoligi", true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-palette"></i> <span>Rasm Yaratish (Flux)</span>';
+      }
+    }
+
+    async function webSearchMusic() {
+      const q = document.getElementById('webMusicQuery').value.trim();
+      const btn = document.getElementById('btnWebMusic');
+      const resultsDiv = document.getElementById('webMusicResults');
+      
+      if (!q) { showToast("Qidiruv so'zini yozing!", true); return; }
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      resultsDiv.innerHTML = '';
+      
+      try {
+        const res = await fetch('/api/search-music?q=' + encodeURIComponent(q));
+        const data = await res.json();
+        if (data.success && data.tracks && data.tracks.length > 0) {
+          data.tracks.forEach(t => {
+            const row = document.createElement('div');
+            row.className = 'bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between text-xs transition-all hover:border-indigo-500/50 mt-2';
+            row.innerHTML = ' \
+              <div class="flex-1 truncate pr-2"> \
+                <p class="font-bold text-slate-100 truncate">' + t.title.replace(/'/g, "&apos;") + '</p> \
+                <p class="text-[10px] text-slate-400 truncate">' + t.artist.replace(/'/g, "&apos;") + '</p> \
+              </div> \
+              <button onclick="playWebMusic(\'' + t.audioUrl.replace(/'/g, "\\'") + '\', \'' + t.title.replace(/'/g, "\\'") + '\')" class="bg-indigo-600/80 text-white rounded-lg p-2 flex items-center justify-center hover:bg-indigo-500 transition-colors"> \
+                <i class="fas fa-play text-[10px]"></i> \
+              </button> \
+            ';
+            resultsDiv.appendChild(row);
+          });
+          showToast("🎵 Qo'shiqlar ro'yxati yuklandi!");
+        } else {
+          showToast("Hech narsa topilmadi", true);
+        }
+      } catch(e) {
+        showToast("Aloqa xatoligi", true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-search"></i>';
+      }
+    }
+
+    function playWebMusic(url, title) {
+      const player = document.getElementById('webMusicPlayer');
+      const titleEl = document.getElementById('webPlayingTitle');
+      const audio = document.getElementById('webAudioElement');
+      
+      titleEl.innerText = title;
+      audio.src = url;
+      player.classList.remove('hidden');
+      audio.play();
+      showToast("▶️ " + title + " ijro etilmoqda");
     }
 
     function refreshLiveStats() { loadAllData(); triggerPing(); showToast("Statistika yangilandi 🔄"); }
