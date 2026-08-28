@@ -6,11 +6,14 @@ import path from "path";
 import "dotenv/config";
 
 // ==========================================
-// 1. EXPRESS WEB SERVER (24/7 Cloud & Ping Server)
+// 1. EXPRESS WEB SERVER (24/7 Cloud & Admin WebApp)
 // ==========================================
 const app = express();
 const PORT = process.env.PORT || 3000;
 const startTime = new Date();
+
+app.use(express.json());
+app.use(express.static(path.join(process.cwd(), "public")));
 
 app.get("/", (req, res) => {
   const uptimeSeconds = Math.floor(process.uptime());
@@ -21,6 +24,7 @@ app.get("/", (req, res) => {
   res.json({
     status: "online",
     bot: "@mrx_uzbot",
+    owner: "Abdulloh Abdug'aniyev (8255294502)",
     message: "Telegram AI Avto-javob boti 24/7 faol ishlamoqda!",
     uptime: `${hours}h ${minutes}m ${seconds}s`,
     startedAt: startTime.toISOString(),
@@ -36,8 +40,41 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "healthy", timestamp: Date.now() });
 });
 
+// Admin Panel Mini App sahifasi
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(process.cwd(), "public", "admin.html"));
+});
+
+// Admin Dashboard API
+app.get("/api/status", (req, res) => {
+  const uptimeSeconds = Math.floor(process.uptime());
+  const hours = Math.floor(uptimeSeconds / 3600);
+  const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+  const seconds = uptimeSeconds % 60;
+
+  res.json({
+    status: "online",
+    bot: "@mrx_uzbot",
+    uptime: `${hours}h ${minutes}m ${seconds}s`,
+    clan_code: getClanCode(),
+    admin: "Abdulloh Abdug'aniyev",
+    admin_id: 8255294502,
+    updated_at: new Date().toISOString(),
+  });
+});
+
+app.post("/api/clan-code", (req, res) => {
+  const { clan_code, admin_id } = req.body;
+  if (!clan_code) {
+    return res.status(400).json({ success: false, message: "Kod kiritilmadi" });
+  }
+
+  setClanCode(clan_code.trim());
+  res.json({ success: true, clan_code: clan_code.trim() });
+});
+
 app.listen(PORT, () => {
-  console.log(`[HTTP Cloud Server] ${PORT}-portda muvaffaqiyatli ishga tushdi.`);
+  console.log(`[HTTP Cloud & Admin Server] ${PORT}-portda muvaffaqiyatli ishga tushdi.`);
 });
 
 // ==========================================
@@ -122,10 +159,9 @@ function getRandomEmoji() {
 }
 
 // ==========================================
-// 5. FLUX AI (NANO BANANA) ULTRA-REALISTIK RASM GENERATORI
+// 5. FLUX AI (NANO BANANA) 8K ULTRA-REALISTIK RASM GENERATORI
 // ==========================================
 
-// Gemini orqali o'zbekcha so'rovni 8k Ultra-realistik Flux promptiga aylantirish
 async function enhancePromptWithGemini(userQuery) {
   try {
     const res = await ai.models.generateContent({
@@ -260,7 +296,7 @@ async function searchMusicList(query) {
   return results.slice(0, 5);
 }
 
-// Musiqa menyusini chiqarish va MP3 yuborish
+// Musiqa menyusini chiqarish (Go'zal dizayn va kartalar bilan)
 async function sendInteractiveMusicMenu(ctx, queryText, isBusiness = false) {
   const tracks = await searchMusicList(queryText);
 
@@ -310,18 +346,24 @@ async function sendInteractiveMusicMenu(ctx, queryText, isBusiness = false) {
     console.error("Direct audio send error:", err.message);
   }
 
-  // Agar bir nechta trek bo'lsa, tanlash tugmalarini ham chiqaramiz
+  // Go'zal dizayndagi tanlash kartasi
   if (tracks.length > 1 && !isBusiness) {
-    let menuText = `🎧 *Boshqa variantlar ham topildi:*\n\n`;
+    let menuText = `🎧 *QIDIRUV NATIJASI:* _"${queryText}"_\n`;
+    menuText += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
     tracks.forEach((t, i) => {
-      menuText += `${i + 1}️⃣ *${t.title}* ${t.isFull ? "🔥 _(To'liq MP3)_" : "🎵"}\n`;
+      menuText += `💿 *${i + 1}. ${t.title}*\n`;
+      menuText += `├ 👤 *Ijrochi:* ${t.artist}\n`;
+      menuText += `└ 📁 *Format:* ${t.isFull ? "To'liq Original MP3 🔥" : "Audio Track 🎵"}\n\n`;
     });
-    menuText += `\n👇 *Boshqasini eshitmoqchi bo'lsangiz, tugmasini bosing:*`;
+
+    menuText += `━━━━━━━━━━━━━━━━━━━━━\n`;
+    menuText += `👇 *Boshqa trekni eshitish uchun quyidagi tugmalardan birini bosing:*`;
 
     const keyboard = new InlineKeyboard();
     tracks.forEach((t, i) => {
       const shortTitle = t.title.length > 20 ? t.title.substring(0, 20) + ".." : t.title;
-      keyboard.text(`${i + 1}️⃣ ${shortTitle}`, `mus:${searchId}:${i}`).row();
+      keyboard.text(`💿 ${i + 1}. ${shortTitle}`, `mus:${searchId}:${i}`).row();
     });
 
     await ctx.reply(menuText, {
@@ -446,7 +488,6 @@ SHAXSIY CHAT QOIDALARI (MUHIM):
   }
 }
 
-// AI javob generatsiya qilish funksiyasi
 async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin = false) {
   let lastError = null;
   const prompt = getSystemPrompt(isGroup, userIsAdmin);
@@ -477,7 +518,6 @@ async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin =
   return "Salom! Xabaringizni oldim. Hozir bir oz bandroq edim, tez orada to'liqroq javob yozaman! 😊";
 }
 
-// Typing statusini ko'rsatish
 function startTypingIndicator(ctx, isBusiness = false) {
   const sendTyping = async () => {
     try {
@@ -503,7 +543,6 @@ function startTypingIndicator(ctx, isBusiness = false) {
   };
 }
 
-// Faylni Telegramdan yuklab olib Base64 ga o'girish
 async function downloadTelegramFileAsBase64(ctx, fileId) {
   try {
     const fileInfo = await ctx.api.getFile(fileId);
@@ -671,7 +710,7 @@ bot.on("business_message", async (ctx) => {
         }
       }
 
-      // FLUX / Nano Banana Rasm yaratish
+      // FLUX Rasm yaratish
       if (isImageRequest(messageText)) {
         const rawPrompt = extractImagePrompt(messageText);
         const enhancedPrompt = await enhancePromptWithGemini(rawPrompt);
@@ -720,14 +759,30 @@ bot.on("business_message", async (ctx) => {
   }
 });
 
-// Maxsus buyruqlar: /start, /musiqa, /rasm, /kod, /about
+// Maxsus buyruqlar: /start, /admin, /musiqa, /rasm, /kod, /about
 bot.command("start", async (ctx) => {
   const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
   const userIsAdmin = isAdmin(ctx);
+  const appUrl = process.env.APP_URL || "https://telegram-ai-bot-9mk1.onrender.com";
 
-  const helpText = userIsAdmin
-    ? "👋 Assalomu alaykum, Abdulloh aka (Admin)! Barcha tizimlar to'liq nazoratingiz ostida. /kod buyrug'i orqali Clan kodini o'zgartirishingiz yoki boshqa amallarni bajarishingiz mumkin! 🚀"
-    : isGroup
+  if (userIsAdmin) {
+    const keyboard = new InlineKeyboard().webApp("👑 Admin Panelni Ochish (Mini App)", `${appUrl}/admin`);
+
+    await ctx.reply(
+      "👑 *Assalomu alaykum, Abdulloh aka (Bosh Admin)!*\n\nBarcha tizimlar to'liq nazoratingiz ostida. Quyidagi tugma orqali *Maxsus Mini Ilova Admin Paneli*ni ochishingiz yoki `/kod <yangi_kod>` orqali Clan kodini o'zgartirishingiz mumkin! 🚀",
+      {
+        parse_mode: "Markdown",
+        reply_markup: keyboard,
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+          allow_sending_without_reply: true,
+        },
+      }
+    );
+    return;
+  }
+
+  const helpText = isGroup
     ? "👋 Assalomu alaykum!\n\nGuruhda menga Reply qilib istalgan savolingizni berishingiz, rasm/video/fayl tashlab tahlil qildirishingiz, rasm chizdirishingiz (/rasm), musiqa qidirishingiz (/musiqa) yoki Clan kodini olishingiz (/kod) mumkin! 🚀"
     : "👋 Assalomu alaykum!\n\nIstalgan mavzuda savollaringiz bo'lsa bemalol yozing, rasm yoki video yuborib to'liq tahlil qildiring, AI orqali rasm chizdiring (/rasm) yoki qo'shiq qidiring (/musiqa)! 🚀";
 
@@ -737,6 +792,36 @@ bot.command("start", async (ctx) => {
       allow_sending_without_reply: true,
     },
   });
+});
+
+// /admin va /panel buyrug'i (Faqat Abdulloh uchun Mini App)
+bot.command(["admin", "panel"], async (ctx) => {
+  const userIsAdmin = isAdmin(ctx);
+
+  if (!userIsAdmin) {
+    await ctx.reply("⛔️ Kechirasiz, bu bo'lim faqat bot administratori (Abdulloh) uchun ochiq!", {
+      reply_parameters: {
+        message_id: ctx.message.message_id,
+        allow_sending_without_reply: true,
+      },
+    });
+    return;
+  }
+
+  const appUrl = process.env.APP_URL || "https://telegram-ai-bot-9mk1.onrender.com";
+  const keyboard = new InlineKeyboard().webApp("👑 Admin Panelni Ochish (Mini App)", `${appUrl}/admin`);
+
+  await ctx.reply(
+    "👑 *Assalomu alaykum Abdulloh aka!*\n\nQuyidagi tugma orqali shaxsiy *Mini Ilova Admin Paneli*ni ochishingiz mumkin:\n\n• _Clan kodini jonli boshqarish_\n• _Tizim va AI holatini tekshirish_\n• _Server ping va resurslarini ko'rish_",
+    {
+      parse_mode: "Markdown",
+      reply_markup: keyboard,
+      reply_parameters: {
+        message_id: ctx.message.message_id,
+        allow_sending_without_reply: true,
+      },
+    }
+  );
 });
 
 // /musiqa buyrug'i
@@ -761,7 +846,7 @@ bot.command(["musiqa", "music", "mp3", "song"], async (ctx) => {
   }
 });
 
-// /rasm buyrug'i (Flux / Nano Banana bilan)
+// /rasm buyrug'i (Flux AI)
 bot.command(["rasm", "image", "draw"], async (ctx) => {
   const text = ctx.message.text.trim();
   const parts = text.split(/\s+/);
@@ -801,16 +886,14 @@ bot.command(["rasm", "image", "draw"], async (ctx) => {
   }
 });
 
-// /kod buyrug'i (Adminlik tekshiruvi bilan)
+// /kod buyrug'i
 bot.command(["kod", "clankod", "setkod"], async (ctx) => {
   const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
   const userIsAdmin = isAdmin(ctx);
   const text = ctx.message.text.trim();
   const parts = text.split(/\s+/);
 
-  // Agar yangi kod o'rnatilayotgan bo'lsa
   if (parts.length > 1) {
-    // Agar o'zgartiruvchi shaxs Admin (Abdulloh) bo'lsa
     if (userIsAdmin) {
       const newCode = parts.slice(1).join(" ");
       setClanCode(newCode);
@@ -1134,7 +1217,7 @@ bot.on("message:text", async (ctx) => {
       }
     }
 
-    // 2. FLUX / Nano Banana Rasm yaratish so'rovi
+    // 2. FLUX Rasm yaratish so'rovi
     if (isImageRequest(messageText)) {
       const rawPrompt = extractImagePrompt(messageText);
       const enhancedPrompt = await enhancePromptWithGemini(rawPrompt);
@@ -1252,6 +1335,7 @@ bot.start({
       await bot.api.setMyCommands([
         { command: "musiqa", description: "🎵 Musiqa qidirish va to'liq MP3 yuklash" },
         { command: "rasm", description: "🎨 AI orqali rasm chizish / yaratish" },
+        { command: "admin", description: "👑 Admin Panel (Mini App) - faqat admin" },
         { command: "kod", description: "🔑 Clan kodini ko'rish va yangilash" },
         { command: "about", description: "👨‍💻 Bot egasi haqida ma'lumot" },
         { command: "start", description: "🚀 Botni ishga tushirish" },

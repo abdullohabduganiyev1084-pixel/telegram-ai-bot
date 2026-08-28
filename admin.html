@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Abdulloh — AI Bot Boshqaruv Paneli</title>
+  <!-- Telegram WebApp JS SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+    }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+    .glow-btn {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+      transition: all 0.3s ease;
+    }
+    .glow-btn:hover {
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+      transform: translateY(-2px);
+    }
+    .pulse-online {
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+      animation: pulse 1.6s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+  </style>
+</head>
+<body class="p-4 md:p-6 select-none">
+  <div class="max-w-md mx-auto space-y-5">
+
+    <!-- 1. HEADER PROFILE CARD -->
+    <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
+      <div class="absolute -right-6 -top-6 w-24 h-24 bg-indigo-500/20 rounded-full blur-xl"></div>
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3.5">
+          <div class="relative">
+            <div class="w-13 h-13 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 p-0.5 shadow-lg">
+              <div class="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-xl text-indigo-400 font-bold">
+                👑
+              </div>
+            </div>
+            <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-slate-900 pulse-online"></div>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold text-white flex items-center gap-1.5">
+              Abdulloh Abdug'aniyev
+              <span class="text-xs bg-indigo-500/30 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/30">Admin</span>
+            </h1>
+            <p class="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+              <i class="fab fa-telegram text-sky-400"></i> @abdulloh_abduganiyev_11
+            </p>
+          </div>
+        </div>
+        <div class="text-right">
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            ● 24/7 Faol
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. CLAN KODI BOSHQARUVI (LIVE EDITOR) -->
+    <div class="glass-card rounded-2xl p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400">
+            <i class="fas fa-key text-sm"></i>
+          </div>
+          <h2 class="font-bold text-slate-100 text-sm tracking-wide">Clan Kodi Boshqaruvi</h2>
+        </div>
+        <span id="clanStatusBadge" class="text-[11px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md border border-amber-500/30 font-mono">
+          Faol Kod
+        </span>
+      </div>
+
+      <div class="space-y-2">
+        <label class="text-xs text-slate-400 font-medium flex items-center justify-between">
+          <span>Joriy Clan Kodi:</span>
+          <span id="updatedTime" class="text-[10px] text-slate-500">Yuklanmoqda...</span>
+        </label>
+        <div class="relative">
+          <input 
+            type="text" 
+            id="clanCodeInput" 
+            placeholder="Yangi kodni yozing..." 
+            class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 font-bold text-center tracking-widest text-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all font-mono"
+          />
+          <button 
+            id="copyClanBtn"
+            onclick="copyClanCode()" 
+            class="absolute right-3 top-3 text-slate-400 hover:text-slate-200 transition-colors p-1"
+            title="Nusxalash"
+          >
+            <i class="far fa-copy text-sm"></i>
+          </button>
+        </div>
+      </div>
+
+      <button 
+        id="saveClanBtn" 
+        onclick="saveClanCode()" 
+        class="w-full glow-btn text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 text-sm"
+      >
+        <i class="fas fa-save"></i>
+        <span>Kodni Saqlash va Yangilash</span>
+      </button>
+      <div id="saveFeedback" class="text-xs text-center font-medium hidden"></div>
+    </div>
+
+    <!-- 3. LIVE SERVER STATISTIKASI -->
+    <div class="glass-card rounded-2xl p-5 space-y-3.5">
+      <div class="flex items-center space-x-2 border-b border-slate-700/60 pb-3">
+        <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+          <i class="fas fa-server text-sm"></i>
+        </div>
+        <h2 class="font-bold text-slate-100 text-sm tracking-wide">Tizim va AI Holati</h2>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 pt-1">
+        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3">
+          <p class="text-[11px] text-slate-400 font-medium">Uptime (Ish vaqti)</p>
+          <p id="uptimeValue" class="text-sm font-bold text-indigo-300 mt-1 font-mono">Yuklanmoqda...</p>
+        </div>
+        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3">
+          <p class="text-[11px] text-slate-400 font-medium">AI Asosiy Model</p>
+          <p class="text-sm font-bold text-emerald-400 mt-1">Gemini 3.1 Flash</p>
+        </div>
+        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3">
+          <p class="text-[11px] text-slate-400 font-medium">Rasm Generatsiya</p>
+          <p class="text-sm font-bold text-purple-400 mt-1">Flux.1 (8K Nano)</p>
+        </div>
+        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-3">
+          <p class="text-[11px] text-slate-400 font-medium">Musiqa Qidiruv</p>
+          <p class="text-sm font-bold text-sky-400 mt-1">Original MP3 Engine</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. QUICK ACTIONS (TEZKOR HARAKATLAR) -->
+    <div class="glass-card rounded-2xl p-5 space-y-3">
+      <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Tezkor Harakatlar</h2>
+      <div class="grid grid-cols-2 gap-2.5">
+        <button 
+          onclick="testPing()" 
+          class="bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs font-semibold py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all"
+        >
+          <i class="fas fa-wifi text-emerald-400"></i>
+          <span>Ping Server</span>
+        </button>
+        <button 
+          onclick="refreshAllData()" 
+          class="bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs font-semibold py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all"
+        >
+          <i class="fas fa-sync-alt text-indigo-400"></i>
+          <span>Yangilash</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <p class="text-center text-[11px] text-slate-500 pt-2 pb-6">
+      © 2026 Abdulloh Abdug'aniyev • Maxsus Admin Dashboard
+    </p>
+
+  </div>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.expand();
+      tg.ready();
+      if (tg.setHeaderColor) tg.setHeaderColor('#0f172a');
+      if (tg.setBackgroundColor) tg.setBackgroundColor('#0f172a');
+    }
+
+    async function loadDashboardData() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        
+        if (data.clan_code) {
+          document.getElementById('clanCodeInput').value = data.clan_code;
+        }
+        if (data.uptime) {
+          document.getElementById('uptimeValue').innerText = data.uptime;
+        }
+        if (data.updated_at) {
+          const date = new Date(data.updated_at);
+          document.getElementById('updatedTime').innerText = "Yangilandi: " + date.toLocaleTimeString();
+        } else {
+          document.getElementById('updatedTime').innerText = "Holat: Faol";
+        }
+      } catch (e) {
+        console.error("Dashboard error:", e);
+      }
+    }
+
+    async function saveClanCode() {
+      const newCode = document.getElementById('clanCodeInput').value.trim();
+      const feedback = document.getElementById('saveFeedback');
+      const saveBtn = document.getElementById('saveClanBtn');
+
+      if (!newCode) {
+        showFeedback("Kodni bo'sh qoldirib bo'lmaydi!", "text-rose-400");
+        return;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saqlanmoqda...';
+
+      try {
+        const res = await fetch('/api/clan-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clan_code: newCode, admin_id: 8255294502 })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          showFeedback("✅ Yangi Clan kodi saqlandi: " + newCode, "text-emerald-400");
+          document.getElementById('updatedTime').innerText = "Hozirgina yangilandi!";
+          if (tg && tg.HapticFeedback) {
+            tg.HapticFeedback.notificationOccurred('success');
+          }
+        } else {
+          showFeedback("Xatolik: " + (data.message || "Saqlab bo'lmadi"), "text-rose-400");
+        }
+      } catch (e) {
+        showFeedback("Server bilan aloqa xatoligi", "text-rose-400");
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> <span>Kodni Saqlash va Yangilash</span>';
+      }
+    }
+
+    function showFeedback(text, colorClass) {
+      const fb = document.getElementById('saveFeedback');
+      fb.className = `text-xs text-center font-medium ${colorClass} block pt-1`;
+      fb.innerText = text;
+      setTimeout(() => {
+        fb.classList.add('hidden');
+      }, 4000);
+    }
+
+    function copyClanCode() {
+      const input = document.getElementById('clanCodeInput');
+      input.select();
+      navigator.clipboard.writeText(input.value);
+      if (tg && tg.HapticFeedback) {
+        tg.HapticFeedback.impactOccurred('light');
+      }
+      showFeedback("Kopiya qilindi! 📋", "text-sky-400");
+    }
+
+    async function testPing() {
+      try {
+        const start = Date.now();
+        const res = await fetch('/ping');
+        const end = Date.now();
+        const text = await res.text();
+        showFeedback(`⚡️ Ping muvaffaqiyatli: ${end - start}ms`, "text-emerald-400");
+      } catch (e) {
+        showFeedback("Pingda xatolik bo'ldi", "text-rose-400");
+      }
+    }
+
+    function refreshAllData() {
+      loadDashboardData();
+      showFeedback("Ma'lumotlar yangilandi 🔄", "text-indigo-400");
+    }
+
+    // Har 10 soniyada avtomatik ma'lumotlarni yangilab turish
+    loadDashboardData();
+    setInterval(loadDashboardData, 10000);
+  </script>
+</body>
+</html>
