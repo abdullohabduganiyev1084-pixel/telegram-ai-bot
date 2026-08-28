@@ -1088,7 +1088,7 @@ bot.on("business_message", async (ctx) => {
 bot.command("start", async (ctx) => {
   const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
   const userIsAdmin = isAdmin(ctx);
-  const appUrl = process.env.APP_URL || "https://telegram-ai-bot-9mk1.onrender.com";
+  const appUrl = process.env.APP_URL || "https://telegram-ai-bot-l1yc.onrender.com";
 
   if (userIsAdmin) {
     const keyboard = new InlineKeyboard().webApp("👑 Admin Panelni Ochish (Mini App)", `${appUrl}/admin`);
@@ -1133,7 +1133,7 @@ bot.command(["admin", "panel"], async (ctx) => {
     return;
   }
 
-  const appUrl = process.env.APP_URL || "https://telegram-ai-bot-9mk1.onrender.com";
+  const appUrl = process.env.APP_URL || "https://telegram-ai-bot-l1yc.onrender.com";
   const keyboard = new InlineKeyboard().webApp("👑 Admin Panelni Ochish (Mini App)", `${appUrl}/admin`);
 
   await ctx.reply(
@@ -1147,6 +1147,52 @@ bot.command(["admin", "panel"], async (ctx) => {
       },
     }
   );
+});
+
+// /seturl buyrug'i - Render havolasini yangilash
+bot.command(["seturl", "url"], async (ctx) => {
+  if (!isAdmin(ctx)) return;
+  const text = ctx.message.text.trim();
+  const parts = text.split(/\s+/);
+  if (parts.length > 1) {
+    const newUrl = parts[1].replace(/\/+$/, "");
+    process.env.APP_URL = newUrl;
+    try {
+      await bot.api.setChatMenuButton({
+        chat_id: 8255294502,
+        menu_button: {
+          type: "web_app",
+          text: "👑 Admin Panel",
+          web_app: {
+            url: newUrl,
+          },
+        },
+      });
+      await ctx.reply(
+        `✅ *Mini App havolasi muvaffaqiyatli o'rnatildi!*\n\n🔗 *Yangi havola:* \`${newUrl}\`\n\nEndi Telegramdagi **[👑 Admin Panel]** tugmasini bosing, bir zumda ochiladi! 🔥`,
+        {
+          parse_mode: "Markdown",
+          reply_parameters: {
+            message_id: ctx.message.message_id,
+            allow_sending_without_reply: true,
+          },
+        }
+      );
+    } catch (e) {
+      await ctx.reply("Xatolik: " + e.message);
+    }
+  } else {
+    await ctx.reply(
+      `🌐 *Hozirgi Mini App havolasi:* \`${process.env.APP_URL || "https://telegram-ai-bot-l1yc.onrender.com"}\`\n\nYangilash uchun: \`/seturl https://sizning-saytingiz.onrender.com\` deb yozing.`,
+      {
+        parse_mode: "Markdown",
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+          allow_sending_without_reply: true,
+        },
+      }
+    );
+  }
 });
 
 // /musiqa buyrug'i
