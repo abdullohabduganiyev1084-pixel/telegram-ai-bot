@@ -795,7 +795,7 @@ if (!fs.existsSync(CLAN_DATA_FILE)) {
 // 4. BOT VA GEMINI AI SOZLAMALARI
 // ==========================================
 const botToken = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN || "8958192118:AAH-ChmMsPTVKY9k2T4CJuKnVWhyj5a6txo";
-const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY || process.env.API_KEY || "AQ.Ab8RN6IrCXN24qNptQ4o3P0rhoy9tJ44m6MH5PVxmNXPY20Ljw";
+const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY || process.env.API_KEY || "AQ.Ab8RN6L6chyxu3CN0rL8sCgCMzrQqnNLuoj4LuHWI8Z3o8vPcw";
 
 if (!process.env.TELEGRAM_BOT_TOKEN && !process.env.BOT_TOKEN) {
   console.warn("[Config Warning] TELEGRAM_BOT_TOKEN topilmadi, standart fallback ishlatilmoqda.");
@@ -808,10 +808,9 @@ const bot = new Bot(botToken);
 const ai = new GoogleGenAI({ apiKey: geminiApiKey });
 
 const AI_MODELS = [
-  "gemini-3.1-flash-lite",
-  "gemini-3.5-flash-lite",
-  "gemini-3.5-flash",
-  "gemini-3-flash-preview",
+  "gemini-3.6-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-1.5-flash",
 ];
 
 const FUN_EMOJIS = ["🔥", "⚡️", "😎", "🚀", "✨", "🤝", "🙌", "⚽️", "🎮", "💡", "🎯", "👏", "🏆", "🎧", "🎨"];
@@ -827,7 +826,7 @@ function getRandomEmoji() {
 async function enhancePromptWithGemini(userQuery) {
   try {
     const res = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite",
+      model: "gemini-3.6-flash",
       contents: `Foydalanuvchi so'rovi: "${userQuery}".\nBuni eng so'nggi Flux / Nano Banana AI rasm generatori uchun professional, ultra-realistik 8k, fotorealistik bitta toza inglizcha promptga aylantiring. Faqat va faqat toza inglizcha prompt matnini qaytaring, boshqa hech qanday so'z yoki qo'shimcha yozmang.`,
       config: {
         maxOutputTokens: 150,
