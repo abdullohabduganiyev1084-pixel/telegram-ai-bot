@@ -403,7 +403,7 @@ const ADMIN_HTML = `<!DOCTYPE html>
     }
 
     function refreshLiveStats() { loadAllData(); triggerPing(); loadUsersList(); showToast("Statistika yangilandi 🔄"); }
-    loadAllData(); setInterval(loadAllData, 12000);
+    loadAllData(); triggerPing(); loadUsersList(); setInterval(loadAllData, 12000);
   </script>
 </body>
 </html>`;
