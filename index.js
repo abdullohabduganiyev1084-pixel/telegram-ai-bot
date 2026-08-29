@@ -1199,7 +1199,31 @@ function isWeatherRequest(text) {
     t.includes("issiqmi") ||
     t.includes("sovuqmi") ||
     t.includes("yomg'ir") ||
-    t.includes("qor")
+    t.includes("yomgir") ||
+    t.includes("qor yog") ||
+    t.includes("shamol") ||
+    t.includes("andijon havo") ||
+    t.includes("toshkent havo") ||
+    t.includes("temperatura") ||
+    t.includes("necha gradus") ||
+    t.includes("necha deraja")
+  );
+}
+
+function isTimeRequest(text) {
+  if (!text) return false;
+  const t = text.toLowerCase();
+  return (
+    t.includes("soat nechi") ||
+    t.includes("soat necha") ||
+    t.includes("necha bo'ldi") ||
+    t.includes("hozir soat") ||
+    t.includes("qaysi soat") ||
+    t.includes("vaqt necha") ||
+    t === "soat" ||
+    t.includes("bugun qaysi kun") ||
+    t.includes("bugun necha") ||
+    t.includes("sana nima")
   );
 }
 
@@ -1207,6 +1231,8 @@ function isClanCodeRequest(text) {
   if (!text) return false;
   const t = text.toLowerCase().trim();
   return (
+    t === "kod" ||
+    t === "/kod" ||
     t.includes("clan uchun kod") ||
     t.includes("clan kodi") ||
     t.includes("clanga kod") ||
@@ -1215,7 +1241,11 @@ function isClanCodeRequest(text) {
     t.includes("klan kodi") ||
     t.includes("klan uchun kod") ||
     t.includes("clan kod") ||
-    t.includes("klan kod")
+    t.includes("klan kod") ||
+    t.includes("clanga qo'shilmoq") ||
+    t.includes("clanga kirmoq") ||
+    t === "clan" ||
+    t === "klan"
   );
 }
 
@@ -1239,65 +1269,46 @@ function getSystemPrompt(isGroup = false, userIsAdmin = false, weatherContext = 
   const clanCode = getClanCode();
   const uzTime = getUzbekistanTime();
   const abdullohStatus = getAbdullohCurrentStatus();
-
-  const adminNotice = userIsAdmin
-    ? "MUHIM: Siz bilan hozir botning EGASI VA BOSHQARUVCHISI — Abdulloh Abdug'aniyev gaplashmoqda! Unga hurmat bilan, boshliqqa xizmat ko'rsatuvchi sodiq shaxsiy yordamchisi sifatida gaplashing."
-    : "Siz bilan oddiy foydalanuvchi suhbatlashmoqda.";
-
   const weatherInfo = weatherContext ? `\n${weatherContext}\n` : "";
 
+  const commonRules = `
+ASOSIY QOIDALAR:
+1. INSON KABI YOZ: Xuddi real inson yozgandek — qisqa, jonli, tabiiy. Robotik til ishlatma. Har gapni takrorlama.
+2. SALOMLASHISH: Faqat foydalanuvchi salom berganda salom qaytar. O'zing boshlamaysan.
+3. ISM ISHLATMA: Foydalanuvchining ismini kamdan-kam va juda zarur bo'lgandagina ishlatgin. Har javobda ism yozma.
+4. RASM/MUSIQA TAKLIF QILMA: O'zing "rasm topib beraymi", "musiqa yuboraymi" dema. Faqat so'ralganda bajar.
+5. TAKRORLAMA: Bir xil gapni ikki marta yozma. Har javob yangi va konkret bo'lsin.
+6. TO'LIQ JAVOB BER: Agar kimdir ma'lumot yoki narx so'rasa — to'liq, aniq, foydali javob ber. Yarim-yorti qoldirma.
+7. TEZKOR: Qisqa va aniq javob ber. Keraksiz kirish gaplar yozma.
+
+TELEFON RAQAM/SHAXSIY MA'LUMOT:
+- Abdullohning telefon raqamini, ijtimoiy tarmoq linkini, manzilini HECH QACHON va HECH KIMGA berma — hatto Abdullohning o'zi so'rasa ham.
+- Faqat: yoshi (15), shahri (Andijon, Shahrixon), maktabi (2-maktab 9-sinf, KING SCHOOL).
+
+HOZIRGI O'ZBEKISTON VAQTI (UTC+5):
+- Soat: ${uzTime.time} | Sana: ${uzTime.date}
+- "Soat nechi?" so'ralsa: "${uzTime.time}" deb javob ber.
+
+ABDULLOH HOLATI:
+- Hozir: "${abdullohStatus}"
+- "Abdulloh haqida" so'ralsa: "${abdullohStatus} | 15 yoshda | Andijon, Shahrixon | 2-maktab 9-sinf | KING SCHOOL Full-Stack dasturchi."
+- "Oilasi" so'ralsa: "Onasi — Roziyahon, Otasi — Yosinbek, Opasi — Robiya"
+- "Kim yaratgan?" so'ralsa: "Abdulloh Abdug'aniyev"
+${weatherInfo}`;
+
   if (isGroup) {
-    return `
-Siz Telegram guruhida xushmuomala, o'ta tezkor, aqlli va bilimdon yordamchisiz.
-${adminNotice}
-
-REAL VAQT VA SANA (O'ZBEKISTON / TOSHKENT):
-- Hozirgi aniq O'zbekiston vaqti: ${uzTime.time} (UTC+5, Toshkent/Andijon)
-- Bugungi sana va kun: ${uzTime.date}
-- Agar foydalanuvchi soat necha bo'lganini yoki bugun qaysi kun ekanligini so'rasa, aynan shu O'zbekiston vaqtini ayting!
-${weatherInfo}
-
-MULOQOT VA JAVOB BERISH QOIDALARI:
-- XAQIQIY ODAMLARDEK GAPLASHING: Mutlaqo insoniy tilda yozing. Sun'iy intellektga xos bo'lgan quruq, rasmiy andozalarni mutlaqo ishlatmang. Gaplar qisqa, sodda, jonli va o'ta samimiy bo'lsin.
-- MUSIQA VA RASM HAQIDA O'ZINGIZDAN O'ZINGIZ YOZMANG: Hech qachon javoblaringizda "Sizga rasm yoki musiqa topib beraymi?", "Buyruqlardan foydalaning" deb taklif qilmang! Faqat foydalanuvchi so'ragandagina bajaring.
-- Hech qachon takroriy salomlashuvlar bilan boshlamang. Faqat foydalanuvchi birinchi bo'lib salomlashsa, salomlashing.
-
-ABDULLOH (BOT EGASI) VA UNING KUN TARTIBI:
-- Hozirgi aniq vaqt bo'yicha Abdullohning holati: "${abdullohStatus}"
-- O'zingizdan o'zingiz Abdulloh haqida ma'lumot bermang. Faqat so'rashgandagina ayting:
-  * Agar "Abdulloh nima qilyapti?", "Abdulloh qani?" deb so'ralsa: aynan "${abdullohStatus}" deb javob bering.
-  * Agar "Abdulloh haqida ma'lumot ber" deb so'ralsa: "${abdullohStatus} Abdulloh Abdug'aniyev, 15 yoshda, Andijon viloyati Shahrixon tumanidan, 2-maktab 9-sinf o'quvchisi va KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-Stack dasturchi."
-  * Agar "Abdullohni oilasi haqida ma'lumot ber" deb so'ralsa: "Onasi — Roziyahon, Otasi — Yosinbek, Opasi — Robiya".
-  * Agar faqat "kim yaratgan?", "kim bu?" deb so'ralsa: faqat "Abdulloh Abdug'aniyev".
-
+    return `${commonRules}
 GURUH QOIDALARI:
-1. CLAN KODI: Faqat guruh a'zolari so'raganida faol Clan kodini ayting: "${clanCode}".
-2. O'ZBEKISTON BOZORLARI NARXI VA DO'KONLARI:
-   - Rasm yoki mahsulot narxi so'ralsa, aniq modeli, narxi va O'zbekistondagi do'konlarini ko'rsating.
-3. OB-HAVO: Faqat so'ralsa ayting.
+- Clan kodi: "${clanCode}" — faqat clan haqida so'ralganda ayt.
+- Rasm/mahsulot narxi so'ralsa: O'zbekiston bozori (so'm, dollar), model/brend, qayerda sotilishi bilan javob ber.
+- Faqat botga murojaat (mention/reply) bo'lganda javob ber.
 `;
   } else {
-    return `
-Siz shaxsiy chatda xuddi haqiqiy do'stdek samimiy, juda aqlli, o'ta tezkor va bilimdon inson sifatida gaplashuvchi yordamchisiz.
-${adminNotice}
-
-REAL VAQT VA SANA (O'ZBEKISTON / TOSHKENT):
-- Hozirgi aniq O'zbekiston vaqti: ${uzTime.time} (UTC+5, Toshkent/Andijon)
-- Bugungi sana va kun: ${uzTime.date}
-${weatherInfo}
-
-MULOQOT VA JAVOB BERISH QOIDALARI:
-- XAQIQIY ODAMLARDEK GAPLASHING: Mutlaqo insoniy tilda yozing. Har qanday robotik rasmiy andozalardan voz keching. Kerak bo'lsa 'aka', 'uka', 'opa', 'charchamang', 'rahmat' kabi so'zlarni joyida, tabiiy ishlating.
-- MUSIQA VA RASM HAQIDA O'ZINGIZDAN O'ZINGIZ YOZMANG: Hech qachon javoblaringizda "Sizga rasm yoki musiqa topib beraymi?", "/musiqa /rasm dan foydalaning" deb taklif qilmang! Faqat foydalanuvchi so'ragandagina bajaring.
-- Shaxsiy chatlarda Clan kodi haqida hech narsa yozmang va guruhdan olasiz demang.
-
-ABDULLOH (BOT EGASI) VA UNING KUN TARTIBI:
-- Hozirgi aniq vaqt bo'yicha Abdullohning holati: "${abdullohStatus}"
-- O'zingizdan o'zingiz Abdulloh haqida ma'lumot bermang. Faqat so'rashgandagina ayting:
-  * Agar "Abdulloh nima qilyapti?", "Abdulloh qani?" deb so'ralsa: aynan "${abdullohStatus}" deb javob bering.
-  * Agar "Abdulloh haqida ma'lumot ber" deb so'ralsa: "${abdullohStatus} Abdulloh Abdug'aniyev, 15 yoshda, Andijon viloyati Shahrixon tumanidan, 2-maktab 9-sinf o'quvchisi va KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-Stack dasturchi."
-  * Agar "Abdullohni oilasi haqida ma'lumot ber" deb so'ralsa: "Onasi — Roziyahon, Otasi — Yosinbek, Opasi — Robiya".
-  * Agar faqat "kim yaratgan?", "kim bu?" deb so'ralsa: faqat "Abdulloh Abdug'aniyev".
+    return `${commonRules}
+SHAXSIY CHAT QOIDALARI:
+- Do'stona, samimiy, jonli muloqot qil.
+- CLAN KODI HAQIDA HECH NARSA YOZMA. "Guruhdan ol" ham dema. Mutlaqo.
+- Foydalanuvchi nima so'rasa — to'liq, aniq javob ber.
 `;
   }
 }
@@ -2190,7 +2201,9 @@ bot.on("message:photo", async (ctx) => {
   if (isGroup) {
     const isReplyToBot = replyTo?.from?.id === ctx.me?.id;
     const isMentioned = caption.toLowerCase().includes(`@${botUsername}`);
-    if (!isReplyToBot && !isMentioned) {
+    const hasCaption = caption.trim().length > 0;
+    // Guruhda: bot tilga olinsa, botga reply qilinsa, YOKI caption bilan rasm yuborilsa
+    if (!isReplyToBot && !isMentioned && !hasCaption) {
       return;
     }
   }
@@ -2203,14 +2216,21 @@ bot.on("message:photo", async (ctx) => {
     const downloaded = await downloadTelegramFileAsBase64(ctx, highestPhoto.file_id);
 
     if (downloaded) {
-      const userPrompt = caption || "Ushbu rasmni sinchiklab ko'rib chiqing. Undagi buyum (masalan: butsi, mashina, kiyim, texnika yoki buyum) haqida JUDA TO'LIQ, narxlari va O'zbekistonda qayerda sotilishi bilan ma'lumot bering.";
+      // Foydalanuvchi nima so'rayotganini aniqlash
+      const captionLower = caption.toLowerCase();
+      let userPrompt;
+      if (captionLower.includes("narx") || captionLower.includes("pul") || captionLower.includes("qancha") || captionLower.includes("sotib") || captionLower.includes("dollar") || captionLower.includes("so'm")) {
+        userPrompt = `Foydalanuvchi ushbu rasmni yuborib narx so'radi: "${caption || 'narxi qancha?'}". Rasmda ko'ringan buyumni (kiyim, texnika, oyoq kiyim, mashina va h.k.) aniqlang. Keyin O'zbekiston bozorlaridagi narxi (so'm va dollar bilan), modeli/brendi, va qayerda sotilishi (Andijon, Toshkent bazori, online do'konlar) haqida aniq va to'liq ma'lumot bering.`;
+      } else if (captionLower.includes("ma'lumot") || captionLower.includes("malumot") || captionLower.includes("nima bu") || captionLower.includes("bu nima") || captionLower.includes("haqida")) {
+        userPrompt = `Foydalanuvchi ushbu rasmni yuborib ma'lumot so'radi: "${caption || 'nima bu?'}". Rasmni sinchiklab tahlil qiling va ko'ringan narsa (mahsulot, joylar, shaxs, buyum, o'simlik va h.k.) haqida TO'LIQ, aniq va foydali ma'lumot bering. Hech narsani qoldirmang.`;
+      } else if (caption.trim().length > 0) {
+        userPrompt = `Foydalanuvchi ushbu rasmni yuborib quyidagicha yozdi: "${caption}". Rasmni ko'rib ushbu so'rovga to'liq va aniq javob bering.`;
+      } else {
+        userPrompt = `Ushbu rasmni sinchiklab tahlil qiling. Ko'ringan buyum, mahsulot yoki narsa haqida to'liq ma'lumot bering: nomi, turi, O'zbekistonda narxi, brendi, qayerda sotilishi. Agar rasm biror joy yoki shaxs bo'lsa, u haqida to'liq ma'lumot bering.`;
+      }
+
       const payload = [
-        {
-          inlineData: {
-            data: downloaded.base64Data,
-            mimeType: "image/jpeg",
-          },
-        },
+        { inlineData: { data: downloaded.base64Data, mimeType: "image/jpeg" } },
         userPrompt,
       ];
 
@@ -2331,6 +2351,7 @@ bot.on("message:text", async (ctx) => {
     const isReplyToVideo = replyTo && (replyTo.video || replyTo.video_note);
     const isMentioned = messageText.toLowerCase().includes(`@${botUsername}`);
 
+    // Guruhda javob ber: bot mention, botga reply, YOKI rasmdagi/videodagi reply
     if (!isReplyToBot && !isMentioned && !isReplyToPhoto && !isReplyToVideo) {
       return;
     }
@@ -2342,36 +2363,64 @@ bot.on("message:text", async (ctx) => {
   const stopTyping = startTypingIndicator(ctx, false);
 
   try {
-    // 1. Agar avvalgi rasmga REPLY qilib yozilgan bo'lsa
+    // 1. Agar avvalgi rasmga REPLY qilib yozilgan bo'lsa (istalgan rasmga — bot yoki foydalanuvchi yuborgan)
     if (replyTo && replyTo.photo && replyTo.photo.length > 0) {
-      console.log(`[Rasmga Reply qilindi -> ${senderName}]: "${messageText}"`);
+      console.log(`[Rasmga Reply -> ${senderName}]: "${messageText}"`);
       const highestPhoto = replyTo.photo[replyTo.photo.length - 1];
       const downloaded = await downloadTelegramFileAsBase64(ctx, highestPhoto.file_id);
 
       if (downloaded) {
-        const userPrompt = `Foydalanuvchi ushbu rasmga reply qilib quyidagicha yozdi/so'radi: "${messageText}".\nIltimos, rasmni sinchiklab ko'rib, foydalanuvchining savoliga juda to'liq, narxlari va sotilish joylari bilan javob bering.`;
+        const msgLower = messageText.toLowerCase();
+        let userPrompt;
+        if (msgLower.includes("narx") || msgLower.includes("qancha") || msgLower.includes("pul") || msgLower.includes("dollar") || msgLower.includes("so'm") || msgLower.includes("sotib")) {
+          userPrompt = `Foydalanuvchi ushbu rasmga reply qilib narx so'radi: "${messageText}". Rasmda ko'ringan buyumni aniqlab, O'zbekiston bozorlaridagi narxi (so'm va dollar), brendi/modeli, qayerda sotilishi (Andijon, Toshkent bozori, online do'konlar) haqida aniq ma'lumot bering.`;
+        } else if (msgLower.includes("ma'lumot") || msgLower.includes("malumot") || msgLower.includes("nima bu") || msgLower.includes("haqida") || msgLower.includes("bu nima")) {
+          userPrompt = `Foydalanuvchi ushbu rasmga reply qilib ma'lumot so'radi: "${messageText}". Rasmni to'liq tahlil qilib, ko'ringan narsa haqida batafsil, aniq va foydali ma'lumot bering.`;
+        } else {
+          userPrompt = `Foydalanuvchi ushbu rasmga reply qilib shunday yozdi: "${messageText}". Rasmni ko'rib, savolga to'liq va aniq javob bering.`;
+        }
+
         const payload = [
-          {
-            inlineData: {
-              data: downloaded.base64Data,
-              mimeType: "image/jpeg",
-            },
-          },
+          { inlineData: { data: downloaded.base64Data, mimeType: "image/jpeg" } },
           userPrompt,
         ];
 
         const aiAnswer = await generateAiResponse(payload, isGroup, userIsAdmin, messageText, ctx.chat.id, ctx.from?.id);
         await ctx.reply(aiAnswer, {
-          reply_parameters: {
-            message_id: ctx.message.message_id,
-            allow_sending_without_reply: true,
-          },
+          reply_parameters: { message_id: ctx.message.message_id, allow_sending_without_reply: true },
         });
+        stopTyping();
         return;
       }
     }
 
-    // 2. FLUX Rasm yaratish so'rovi
+    // 2. Vaqt so'rovi — AI ga yuborilmasdan darhol javob
+    if (isTimeRequest(messageText)) {
+      const uzTime = getUzbekistanTime();
+      await ctx.reply(`🕐 Hozir O'zbekiston vaqti: *${uzTime.time}*\n📅 ${uzTime.date}`, {
+        parse_mode: "Markdown",
+        reply_parameters: { message_id: ctx.message.message_id, allow_sending_without_reply: true },
+      });
+      stopTyping();
+      return;
+    }
+
+    // 3. Ob-havo so'rovi — Andijon real ob-havo (darhol)
+    if (isWeatherRequest(messageText)) {
+      const weatherText = await getLiveWeather(messageText);
+      const uzTime = getUzbekistanTime();
+      const reply = weatherText
+        ? `${weatherText}\n⏰ O'zbekiston vaqti: *${uzTime.time}*`
+        : "Hozirda ob-havo ma'lumotlari yuklanmadi. Keyinroq urinib ko'ring.";
+      await ctx.reply(reply, {
+        parse_mode: "Markdown",
+        reply_parameters: { message_id: ctx.message.message_id, allow_sending_without_reply: true },
+      });
+      stopTyping();
+      return;
+    }
+
+    // 4. FLUX Rasm yaratish so'rovi
     if (isImageRequest(messageText)) {
       const rawPrompt = extractImagePrompt(messageText);
       const enhancedPrompt = await enhancePromptWithGemini(rawPrompt);
@@ -2493,6 +2542,7 @@ bot.start({
         { command: "musiqa",    description: "Musiqa izlash 🎧" },
         { command: "rasm",      description: "Rasm yaratish 🎨" },
         { command: "clanrasmi", description: "Clanning Rasmi 🏆" },
+        { command: "kod",       description: "Clan kodi 🎮" },
       ]);
       console.log("[Bot Commands] Menyu buyruqlari muvaffaqiyatli o'rnatildi!");
     } catch (cmdErr) {
