@@ -333,7 +333,6 @@ const ADMIN_HTML = `<!DOCTYPE html>
     var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
     if (tg) {
       try { tg.expand(); } catch(e) {}
-      try { tg.ready(); } catch(e) {}
       try { if (tg.setHeaderColor) tg.setHeaderColor('#0f172a'); } catch(e) {}
       try { if (tg.setBackgroundColor) tg.setBackgroundColor('#0f172a'); } catch(e) {}
     }
@@ -531,13 +530,25 @@ const ADMIN_HTML = `<!DOCTYPE html>
     // ✅ Barchasini yangilash (GLOBAL)
     function refreshLiveStats() { loadAllData(); triggerPing(); loadUsersList(); showToast('Statistika yangilandi 🔄'); }
 
-    // ✅ Sahifa yuklanganda avtomatik ishga tushadi
-    window.onload = function() {
+    // ✅ Ishga tushirish funksiyasi
+    var _initialized = false;
+    function initApp() {
+      if (_initialized) return;
+      _initialized = true;
       loadAllData();
       triggerPing();
       setInterval(loadAllData, 15000);
       setInterval(triggerPing, 30000);
-    };
+    }
+
+    // DOM tayyor bo'lganda ham, window.onload da ham ishlasin
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+      // DOM allaqachon tayyor
+      initApp();
+    }
+    window.onload = initApp;
   </script>
 </body>
 </html>`;
