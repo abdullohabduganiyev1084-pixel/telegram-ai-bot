@@ -1216,6 +1216,18 @@ function isClanCodeRequest(text) {
   );
 }
 
+function getAbdullohCurrentStatus() {
+  const now = new Date();
+  const uzHour = parseInt(now.toLocaleTimeString("uz-UZ", { timeZone: "Asia/Tashkent", hour: "2-digit", hour12: false }), 10);
+  if (uzHour >= 6 && uzHour < 12) {
+    return "Abdulloh hozir sport bilan shug'ullanyapti (mashg'ulotda).";
+  } else if (uzHour >= 12 && uzHour < 22) {
+    return "Abdulloh hozir dars qilyapti va kitob o'qiyapti.";
+  } else {
+    return "Abdulloh hozir uxlayapti (dam olish vaqti).";
+  }
+}
+
 // ==========================================
 // 9. TIZIMLI PROMPT & AI JAVOB GENERATSIYASI
 // ==========================================
@@ -1223,6 +1235,7 @@ function isClanCodeRequest(text) {
 function getSystemPrompt(isGroup = false, userIsAdmin = false, weatherContext = "") {
   const clanCode = getClanCode();
   const uzTime = getUzbekistanTime();
+  const abdullohStatus = getAbdullohCurrentStatus();
 
   const adminNotice = userIsAdmin
     ? "MUHIM: Siz bilan hozir botning EGASI VA BOSHQARUVCHISI — Abdulloh Abdug'aniyev gaplashmoqda! Unga hurmat bilan, boshliqqa xizmat ko'rsatuvchi sodiq shaxsiy yordamchisi sifatida gaplashing."
@@ -1240,29 +1253,25 @@ REAL VAQT VA SANA (O'ZBEKISTON / TOSHKENT):
 - Bugungi sana va kun: ${uzTime.date}
 - Agar foydalanuvchi soat necha bo'lganini yoki bugun qaysi kun ekanligini so'rasa, aynan shu O'zbekiston vaqtini ayting!
 ${weatherInfo}
-MULOQOT VA SALOMLASHISH QOIDALARI:
-- Hech qachon javoblaringizni robotic yoki takroriy salomlashuvlar (masalan, har safar 'Salom!', 'Assalomu alaykum!' deb boshlash) bilan boshlamang. Faqatgina foydalanuvchi o'zi birinchi bo'lib salomlashgan bo'lsa (masalan: 'salom', 'assalomu alaykum'), o'shanda salomlashing.
-- Agar foydalanuvchi salomlashmagan bo'lsa, suhbatni to'g'ridan-to'g'ri savolga javob berishdan boshlang.
-- Vaqt yoki ob-havo ma'lumotlarini faqat foydalanuvchi so'ragandagina javobga qo'shing, so'ramasa o'zingizdan o'zingiz qo'shmang.
 
-EGASI VA YARATUVCHISI HAQIDA MUHIM QOIDA:
-- Agar kimdir oddiygina 'kim bu?', 'buni kim yaratgan?', 'kim yaratgan bu botni?', 'yaratuvchisi kim?', 'avtori kim?' deb so'rasa, FAQAT va FAQAT ismini aytib qo'ying: 'Abdulloh Abdug'aniyev'. Uning yoshi, maktabi, qayerdanligi kabi hech qanday shaxsiy ma'lumotlarni mutlaqo yozmang!
-- Agarda foydalanuvchi aynan 'Abdulloh haqida ma'lumot ber' yoki 'egasi haqida ma'lumot ber' deb aniq va batafsil so'rasagina, quyidagi to'liq ma'lumotni bering:
-  'U hozir band, chunki dam olish vaqtida. Egasi — Abdulloh Abdug'aniyev, 15 yoshda, Andijon viloyati Shahrixon tumanidan, 2-maktab 9-sinf o'quvchisi va KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-Stack dasturchi.'
-- Agarda foydalanuvchi "Abdullohni oilasi haqida ma'lumot ber" deb so'rasa, qisqa va lo'nda qilib: "Onasi — Roziyahon, Otasi — Yosinbek, Opasi — Robiya" deb javob bering.
-- Telefon raqamlarini hech qachon bermang!
+MULOQOT VA JAVOB BERISH QOIDALARI:
+- XAQIQIY ODAMLARDEK GAPLASHING: Mutlaqo insoniy tilda yozing. Sun'iy intellektga xos bo'lgan quruq, rasmiy andozalarni mutlaqo ishlatmang. Gaplar qisqa, sodda, jonli va o'ta samimiy bo'lsin.
+- MUSIQA VA RASM HAQIDA O'ZINGIZDAN O'ZINGIZ YOZMANG: Hech qachon javoblaringizda "Sizga rasm yoki musiqa topib beraymi?", "Buyruqlardan foydalaning" deb taklif qilmang! Faqat foydalanuvchi so'ragandagina bajaring.
+- Hech qachon takroriy salomlashuvlar bilan boshlamang. Faqat foydalanuvchi birinchi bo'lib salomlashsa, salomlashing.
+
+ABDULLOH (BOT EGASI) VA UNING KUN TARTIBI:
+- Hozirgi aniq vaqt bo'yicha Abdullohning holati: "${abdullohStatus}"
+- O'zingizdan o'zingiz Abdulloh haqida ma'lumot bermang. Faqat so'rashgandagina ayting:
+  * Agar "Abdulloh nima qilyapti?", "Abdulloh qani?" deb so'ralsa: aynan "${abdullohStatus}" deb javob bering.
+  * Agar "Abdulloh haqida ma'lumot ber" deb so'ralsa: "${abdullohStatus} Abdulloh Abdug'aniyev, 15 yoshda, Andijon viloyati Shahrixon tumanidan, 2-maktab 9-sinf o'quvchisi va KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-Stack dasturchi."
+  * Agar "Abdullohni oilasi haqida ma'lumot ber" deb so'ralsa: "Onasi — Roziyahon, Otasi — Yosinbek, Opasi — Robiya".
+  * Agar faqat "kim yaratgan?", "kim bu?" deb so'ralsa: faqat "Abdulloh Abdug'aniyev".
 
 GURUH QOIDALARI:
 1. CLAN KODI: Faqat guruh a'zolari so'raganida faol Clan kodini ayting: "${clanCode}".
 2. O'ZBEKISTON BOZORLARI NARXI VA DO'KONLARI:
-   - Rasm yoki mahsulot narxi so'ralsa:
-     * 🏷 Mahsulotning aniq nomi va modeli
-     * 💰 O'zbekiston bozorlaridagi real taxminiy narxi (so'mda va dollarda)
-     * 📍 O'zbekistonda qayerda sotilishi (Uzum Market, OLX.uz, Abu Sahiy, Malika bozori, Asaxiy, Texnomart, Avtoelon va h.k.)
-     * 🔗 Xarid qidiruv havolalari (masalan: Uzum Market: https://uzum.uz/uz/search?q=..., OLX: https://www.olx.uz/d/oz/q-.../)
-3. OB-HAVO MA'LUMOTI: Andijon yoki so'ralgan shahar bo'yicha berilgan real harorat va havo holatini aniq, tushunarli qilib ayting.
-4. MA'LUMOT BERISH: Agar ma'lumot so'ralsa, qisqa, aniq, tushunarli va lo'nda qilib, asosiy jihatlarini emojilar bilan yoritib bering.
-5. XAQIQIY ODAMLARDEK GAPLASHING: Guruh a'zolari bilan mutlaqo samimiy, insoniy va jonli tilda gaplashing. Har qanday robotik va quruq rasmiy andozalardan voz keching. Gaplaringiz sodda, xushmuomala va xuddi oddiy bir guruh a'zosidek tabiiy bo'lsin.
+   - Rasm yoki mahsulot narxi so'ralsa, aniq modeli, narxi va O'zbekistondagi do'konlarini ko'rsating.
+3. OB-HAVO: Faqat so'ralsa ayting.
 `;
   } else {
     return `
@@ -1272,35 +1281,20 @@ ${adminNotice}
 REAL VAQT VA SANA (O'ZBEKISTON / TOSHKENT):
 - Hozirgi aniq O'zbekiston vaqti: ${uzTime.time} (UTC+5, Toshkent/Andijon)
 - Bugungi sana va kun: ${uzTime.date}
-- Agar foydalanuvchi soat necha bo'lganini yoki bugun qaysi kun ekanligini so'rasa, aynan shu O'zbekiston vaqtini ayting!
 ${weatherInfo}
-MULOQOT VA SALOMLASHISH QOIDALARI:
-- Hech qachon javoblaringizni robotic yoki takroriy salomlashuvlar (masalan, har safar 'Salom!', 'Assalomu alaykum!' deb boshlash) bilan boshlamang. Faqatgina foydalanuvchi o'zi birinchi bo'lib salomlashgan bo'lsa (masalan: 'salom', 'assalomu alaykum'), o'shanda salomlashing.
-- Agar foydalanuvchi salomlashmagan bo'lsa, suhbatni to'g'ridan-to'g'ri savolga javob berishdan boshlang.
-- Vaqt yoki ob-havo ma'lumotlarini faqat foydalanuvchi so'ragandagina javobga qo'shing, so'ramasa o'zingizdan o'zingiz qo'shmang.
 
-EGASI VA YARATUVCHISI HAQIDA MUHIM QOIDA:
-- Agar kimdir oddiygina 'kim bu?', 'buni kim yaratgan?', 'kim yaratgan bu botni?', 'yaratuvchisi kim?', 'avtori kim?' deb so'rasa, FAQAT va FAQAT ismini aytib qo'ying: 'Abdulloh Abdug'aniyev'. Uning yoshi, maktabi, qayerdanligi kabi hech qanday shaxsiy ma'lumotlarni mutlaqo yozmang!
-- Agarda foydalanuvchi aynan 'Abdulloh haqida ma'lumot ber' yoki 'egasi haqida ma'lumot ber' deb aniq va batafsil so'rasagina, quyidagi to'liq ma'lumotni bering:
-  'U hozir band, chunki dam olish vaqtida. Egasi — Abdulloh Abdug'aniyev, 15 yoshda, Andijon viloyati Shahrixon tumanidan, 2-maktab 9-sinf o'quvchisi va KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-Stack dasturchi.'
-- Agarda foydalanuvchi "Abdullohni oilasi haqida ma'lumot ber" deb so'rasa, qisqa va lo'nda qilib: "Onasi — Roziyahon, Otasi — Yosinbek, Opasi — Robiya" deb javob bering.
-- Telefon raqamlarini hech qachon bermang!
+MULOQOT VA JAVOB BERISH QOIDALARI:
+- XAQIQIY ODAMLARDEK GAPLASHING: Mutlaqo insoniy tilda yozing. Har qanday robotik rasmiy andozalardan voz keching. Kerak bo'lsa 'aka', 'uka', 'opa', 'charchamang', 'rahmat' kabi so'zlarni joyida, tabiiy ishlating.
+- MUSIQA VA RASM HAQIDA O'ZINGIZDAN O'ZINGIZ YOZMANG: Hech qachon javoblaringizda "Sizga rasm yoki musiqa topib beraymi?", "/musiqa /rasm dan foydalaning" deb taklif qilmang! Faqat foydalanuvchi so'ragandagina bajaring.
+- Shaxsiy chatlarda Clan kodi haqida hech narsa yozmang va guruhdan olasiz demang.
 
-SHAXSIY CHAT QOIDALARI (MUHIM):
-1. CLAN KODI HAQIDA UMUMAN GAPIRMANG: Shaxsiy chatlarda Clan kodi haqida hech narsa yozmang va "guruhdan olasiz" degan gaplarni ham mutlaqo ishlatmang.
-2. ISMNI DOIMIY TAKRORLAMANG: Har gapda "Men falonchining assistentiman" deb robotdek gapirmang. Haqiqiy inson suhbatlashayotgandek tabiiy gaplashing.
-3. OB-HAVO MA'LUMOTI: Andijon yoki so'ralgan viloyat bo'yicha berilgan real harorat, havo holati va tavsiyalarni chiroyli tushuntiring.
-4. O'ZBEKISTON BOZORLARIDAGI NARXLAR VA DO'KONLAR:
-   - Rasm (butsi, mashina, kiyim, texnika, telefon) yoki mahsulot narxi so'ralsa:
-     * 🏷 Mahsulotning aniq nomi va markasi
-     * 💰 O'zbekistondagi real o'rtacha narxi (so'mda va dollarda)
-     * 📍 O'zbekistonda qayerda sotish mumkinligi (Uzum Market, OLX.uz, Abu Sahiy, Malika bozori, Chorsu, Asaxiy, Texnomart, Avtoelon va h.k.)
-     * 🔗 Qidiruv havolalari:
-       - Uzum Market: https://uzum.uz/uz/search?q={nomi}
-       - OLX.uz: https://www.olx.uz/d/oz/q-{nomi}/
-       - Asaxiy: https://asaxiy.uz/product?key={nomi}
-5. MA'LUMOT SO'RASHSA: U haqida qisqacha, aniq, tushunarli va lo'nda qilib barcha miqdoriy bo'lmagan ma'lumotlarni yozing.
-6. XAQIQIY ODAMLARDEK GAPLASHING: Mutlaqo insoniy tilda yozing. Sun'iy intellektga xos bo'lgan 'Assalomu alaykum! Men sizga qanday yordam bera olaman?' kabi robotik, rasmiy andozalarni mutlaqo ishlatmang. Gaplar qisqa, sodda, jonli va o'ta samimiy bo'lsin. Kerak bo'lsa, 'aka', 'uka', 'opa', 'charchamang', 'rahmat' kabi so'zlarni joyida, tabiiy ishlating.
+ABDULLOH (BOT EGASI) VA UNING KUN TARTIBI:
+- Hozirgi aniq vaqt bo'yicha Abdullohning holati: "${abdullohStatus}"
+- O'zingizdan o'zingiz Abdulloh haqida ma'lumot bermang. Faqat so'rashgandagina ayting:
+  * Agar "Abdulloh nima qilyapti?", "Abdulloh qani?" deb so'ralsa: aynan "${abdullohStatus}" deb javob bering.
+  * Agar "Abdulloh haqida ma'lumot ber" deb so'ralsa: "${abdullohStatus} Abdulloh Abdug'aniyev, 15 yoshda, Andijon viloyati Shahrixon tumanidan, 2-maktab 9-sinf o'quvchisi va KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-Stack dasturchi."
+  * Agar "Abdullohni oilasi haqida ma'lumot ber" deb so'ralsa: "Onasi — Roziyahon, Otasi — Yosinbek, Opasi — Robiya".
+  * Agar faqat "kim yaratgan?", "kim bu?" deb so'ralsa: faqat "Abdulloh Abdug'aniyev".
 `;
   }
 }
@@ -1396,18 +1390,22 @@ async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin =
     return "Onasi — Roziyahon, Otasi — Yosinbek, Opasi — Robiya";
   }
 
-  // 2. Yaratuvchi / egasi haqida
+  // 2. Yaratuvchi / egasi haqida va kun tartibi
+  if (rawText.includes("nima qilyapti") || rawText.includes("qani") || rawText.includes("bandmi") || rawText.includes("uyqudami")) {
+    return getAbdullohCurrentStatus();
+  }
+
+  if (rawText.includes("abdulloh haqida") || rawText.includes("egasi haqida") || rawText.includes("abdulloh kim") || rawText.includes("malumot ber")) {
+    return `${getAbdullohCurrentStatus()} Egasi — Abdulloh Abdug'aniyev, 15 yoshda, Andijon viloyati Shahrixon tumanidan, 2-maktab 9-sinf o'quvchisi va KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-Stack dasturchi.`;
+  }
+
   if (rawText.includes("kim yaratgan") || rawText.includes("yaratuvchisi") || rawText.includes("avtori") || rawText.includes("kim bu") || rawText === "kim") {
     return "Abdulloh Abdug'aniyev";
   }
 
-  if (rawText.includes("abdulloh haqida") || rawText.includes("egasi haqida") || rawText.includes("abdulloh kim") || rawText.includes("malumot ber")) {
-    return "U hozir band, chunki dam olish vaqtida. Egasi — Abdulloh Abdug'aniyev, 15 yoshda, Andijon viloyati Shahrixon tumanidan, 2-maktab 9-sinf o'quvchisi va KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-Stack dasturchi.";
-  }
-
-  // 3. Clan kodi (faqat guruhda)
-  if (isGroup && (rawText.includes("clan") || rawText.includes("klan") || rawText.includes("kod"))) {
-    return `Clan kodi: ${getClanCode()}`;
+  // 3. Clan kodi
+  if (rawText.includes("clan") || rawText.includes("klan") || rawText.includes("kod")) {
+    return `🎮 Clan kodi: ${getClanCode()}`;
   }
 
   // 4. Salomlashuvlar
@@ -1440,7 +1438,7 @@ async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin =
   }
 
   // 8. Boshqa barcha holatlarda do'stona, insoniy javob
-  return "Tushundim! Marhamat, sizga qanday yordam bera olaman? Istalgan savolingizni bering yoki /musiqa, /rasm buyruqlaridan foydalaning! 😊";
+  return "Ha, eshitaman! Sizga qanday yordam bera olaman? Bemalol yozing. 😊";
 }
 
 function startTypingIndicator(ctx, isBusiness = false) {
