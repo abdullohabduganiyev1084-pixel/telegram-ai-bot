@@ -72,17 +72,20 @@ const ADMIN_HTML = `<!DOCTYPE html>
     </div>
 
     <!-- TABS -->
-    <div class="glass-card rounded-2xl p-1 flex gap-1 text-xs font-semibold overflow-x-auto">
-      <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn active flex-1 py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 transition-all">
+    <div class="glass-card rounded-2xl p-1.5 flex gap-1 text-xs font-semibold overflow-x-auto">
+      <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn active py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 transition-all">
         <i class="fas fa-chart-pie"></i><span>Boshqaruv</span>
       </button>
-      <button onclick="switchTab('clan')" id="tab-clan" class="tab-btn flex-1 py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
+      <button onclick="switchTab('clan')" id="tab-clan" class="tab-btn py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
         <i class="fas fa-key"></i><span>Clan</span>
       </button>
-      <button onclick="switchTab('botinfo')" id="tab-botinfo" class="tab-btn flex-1 py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
+      <button onclick="switchTab('botinfo')" id="tab-botinfo" class="tab-btn py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
         <i class="fas fa-robot"></i><span>Bot</span>
       </button>
-      <button onclick="switchTab('users')" id="tab-users" class="tab-btn flex-1 py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
+      <button onclick="switchTab('aistudio')" id="tab-aistudio" class="tab-btn py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
+        <i class="fas fa-wand-magic-sparkles"></i><span>AI Studio</span>
+      </button>
+      <button onclick="switchTab('users')" id="tab-users" class="tab-btn py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
         <i class="fas fa-users-gear"></i><span>Foydalanuvchilar</span>
       </button>
     </div>
@@ -103,6 +106,20 @@ const ADMIN_HTML = `<!DOCTYPE html>
           </div>
           <p class="text-base font-extrabold text-sky-300 font-mono">Barcha Chatlar</p>
           <p class="text-[10px] text-sky-400">● Guruhlar & Direct</p>
+        </div>
+        <div class="glass-card rounded-2xl p-3.5 space-y-1">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
+            <span>AI Modellar</span><i class="fas fa-brain text-purple-400"></i>
+          </div>
+          <p class="text-xs font-bold text-purple-300 mt-1">Gemini 3.1 Flash</p>
+          <p class="text-[10px] text-slate-400">+ Flux.1 (8K Ultra-HD)</p>
+        </div>
+        <div class="glass-card rounded-2xl p-3.5 space-y-1">
+          <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
+            <span>Musiqa Tizimi</span><i class="fas fa-music text-amber-400"></i>
+          </div>
+          <p class="text-xs font-bold text-amber-300 mt-1">Original MP3</p>
+          <p class="text-[10px] text-emerald-400">● To'liq 320kbps Audio</p>
         </div>
       </div>
 
@@ -130,6 +147,8 @@ const ADMIN_HTML = `<!DOCTYPE html>
         <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-[11px] font-mono space-y-1 text-slate-300">
           <p class="text-emerald-400">✔ Cloud Host: Render.com (24/7 Active)</p>
           <p class="text-indigo-300">✔ Telegram Bot API: Polling & WebApp OK</p>
+          <p class="text-slate-400">✔ Gemini GenAI & Vision: Ulandi</p>
+          <p class="text-purple-300">✔ Flux AI Rasm Engine: Tayyor</p>
         </div>
       </div>
     </div>
@@ -201,9 +220,87 @@ const ADMIN_HTML = `<!DOCTYPE html>
           <i class="fas fa-save"></i><span>Bot & Admin Sozlamalarini Saqlash</span>
         </button>
       </div>
+
+      <div class="glass-card rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between text-xs">
+          <span class="font-extrabold text-slate-200 flex items-center gap-1.5">
+            <i class="fas fa-list-check text-sky-400"></i> Faol Buyruqlar
+          </span>
+          <span class="text-[10px] text-slate-400">Telegram Menyu</span>
+        </div>
+        <div class="space-y-1.5 text-xs">
+          <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between">
+            <code class="text-indigo-300 font-bold">/musiqa</code><span class="text-slate-400 text-[11px]">🎵 Musiqa qidirish & MP3</span>
+          </div>
+          <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between">
+            <code class="text-purple-300 font-bold">/rasm</code><span class="text-slate-400 text-[11px]">🎨 AI rasm (Flux 8K)</span>
+          </div>
+          <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between">
+            <code class="text-amber-300 font-bold">/kod</code><span class="text-slate-400 text-[11px]">🔑 Clan kodini olish</span>
+          </div>
+          <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between">
+            <code class="text-emerald-300 font-bold">/admin</code><span class="text-slate-400 text-[11px]">👑 Admin Mini App</span>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- TAB 4: USERS -->
+    <!-- TAB 4: AI STUDIO -->
+    <div id="view-aistudio" class="space-y-4 tab-content" style="display: none;">
+      <!-- 🎨 Flux AI Section -->
+      <div class="glass-card rounded-3xl p-5 space-y-4">
+        <div class="flex items-center space-x-2.5 border-b border-slate-700/60 pb-3">
+          <div class="w-9 h-9 rounded-xl bg-pink-500/20 flex items-center justify-center text-pink-400">
+            <i class="fas fa-wand-magic-sparkles text-base"></i>
+          </div>
+          <div>
+            <h2 class="font-extrabold text-white text-sm">Flux AI Studio</h2>
+            <p class="text-[10px] text-slate-400">Professional ultra-HD rasm generatori</p>
+          </div>
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-xs text-slate-300 font-semibold">Rasm uchun tavsif (Prompt):</label>
+          <textarea id="webImagePrompt" rows="2" placeholder="Masalan: neon kiberpank uslubidagi mushuk..." class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500"></textarea>
+        </div>
+        <button id="btnWebDraw" onclick="webDrawImage()" class="w-full btn-gradient text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-sm shadow-md">
+          <i class="fas fa-palette"></i><span>Rasm Yaratish (Flux)</span>
+        </button>
+        <div id="webDrawResult" class="hidden space-y-3 pt-2">
+          <div class="rounded-2xl border border-slate-700 overflow-hidden relative bg-slate-950">
+            <img id="webGeneratedImg" src="" alt="AI Generated Image" class="w-full h-auto block" />
+          </div>
+          <a id="webDownloadBtn" href="" download="flux-image.jpg" target="_blank" class="w-full bg-slate-800 border border-slate-700 text-slate-200 font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs transition-colors hover:bg-slate-700">
+            <i class="fas fa-download"></i><span>Rasmni Yuklab Olish</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- 🎵 Music search Section -->
+      <div class="glass-card rounded-3xl p-5 space-y-4">
+        <div class="flex items-center space-x-2.5 border-b border-slate-700/60 pb-3">
+          <div class="w-9 h-9 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+            <i class="fas fa-music text-base"></i>
+          </div>
+          <div>
+            <h2 class="font-extrabold text-white text-sm">MP3 Musiqa Studio</h2>
+            <p class="text-[10px] text-slate-400">Original to'liq MP3 qo'shiqlar qidiruvi</p>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <input type="text" id="webMusicQuery" placeholder="Qo'shiq nomi..." class="flex-1 bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500" />
+          <button id="btnWebMusic" onclick="webSearchMusic()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors flex items-center justify-center">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+        <div id="webMusicPlayer" class="hidden bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 space-y-2">
+          <p id="webPlayingTitle" class="text-xs font-bold text-indigo-300 font-mono text-center truncate"></p>
+          <audio id="webAudioElement" controls class="w-full"></audio>
+        </div>
+        <div id="webMusicResults" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
+      </div>
+    </div>
+
+    <!-- TAB 5: USERS -->
     <div id="view-users" class="space-y-4 tab-content" style="display: none;">
       <div class="glass-card rounded-3xl p-5 space-y-4">
         <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
@@ -240,7 +337,6 @@ const ADMIN_HTML = `<!DOCTYPE html>
       if (tg.setBackgroundColor) tg.setBackgroundColor('#0f172a'); 
     }
 
-    // 🔒 RESTRICTED ACCESS CHECK FOR ADMIN ONLY
     const user = tg?.initDataUnsafe?.user;
     const ADMIN_IDS = [8255294502];
     const ADMIN_USERNAMES = ["abdulloh_abduganiyev_11", "abdulloh_abduganiyev"];
@@ -282,7 +378,7 @@ const ADMIN_HTML = `<!DOCTYPE html>
           img.classList.remove('hidden');
           fallback.classList.add('hidden');
         }
-        if (data.updated_at) { const d = new Date(data.updated_at); document.getElementById('clanLastUpdated').innerText = "Yangilandi: " + d.toLocaleTimeString(); }
+        if (data.updated_at) document.getElementById('clanLastUpdated').innerText = "Yangilandi: " + new Date(data.updated_at).toLocaleTimeString();
       } catch (e) { console.error(e); }
     }
 
@@ -295,7 +391,7 @@ const ADMIN_HTML = `<!DOCTYPE html>
       try {
         const res = await fetch('/api/clan-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clan_code: code, clan_photo: photo, admin_id: 8255294502 }) });
         const data = await res.json();
-        if (data.success) { showToast('✅ Clan kodi va rasmi saqlandi!'); document.getElementById('clanLastUpdated').innerText = "Hozirgina yangilandi!"; if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); }
+        if (data.success) { showToast('✅ Clan kodi va rasmi saqlandi!'); document.getElementById('clanLastUpdated').innerText = "Hozirgina yangilandi!"; if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); }
         else { showToast("Xatolik: " + (data.message || "Saqlanmadi"), true); }
       } catch (e) { showToast("Server bilan aloqa xatoligi", true); }
       finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check-circle text-base"></i> <span>Klan Rasm va Kodini Saqlash</span>'; }
@@ -315,11 +411,9 @@ const ADMIN_HTML = `<!DOCTYPE html>
           if (avatar) {
             const img = document.getElementById('adminProfileImg');
             const fallback = document.getElementById('adminProfileFallback');
-            img.src = avatar;
-            img.classList.remove('hidden');
-            fallback.classList.add('hidden');
+            img.src = avatar; img.classList.remove('hidden'); fallback.classList.add('hidden');
           }
-          if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); 
+          if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); 
         }
         else { showToast("Xatolik: " + (data.message || "Yangilanmadi"), true); }
       } catch (e) { showToast("Server xatoligi", true); }
@@ -329,12 +423,8 @@ const ADMIN_HTML = `<!DOCTYPE html>
     function copyCode() {
       const input = document.getElementById('inputClanCode');
       input.select(); 
-      try {
-        document.execCommand('copy');
-      } catch (err) {
-        navigator.clipboard.writeText(input.value);
-      }
-      if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+      try { document.execCommand('copy'); } catch (err) { navigator.clipboard.writeText(input.value); }
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
       showToast("Clan kodi nusxalandi! 📋");
     }
 
@@ -348,58 +438,96 @@ const ADMIN_HTML = `<!DOCTYPE html>
       } catch (e) { showToast("Serverga ulanib bo'lmadi", true); }
     }
 
+    async function webDrawImage() {
+      const prompt = document.getElementById('webImagePrompt').value.trim();
+      const btn = document.getElementById('btnWebDraw');
+      const resultDiv = document.getElementById('webDrawResult');
+      const img = document.getElementById('webGeneratedImg');
+      const downloadBtn = document.getElementById('webDownloadBtn');
+      
+      if (!prompt) { showToast("Prompt yozing!", true); return; }
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Rasm chizilmoqda...';
+      resultDiv.classList.add('hidden');
+      
+      try {
+        const res = await fetch('/api/generate-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt }) });
+        const data = await res.json();
+        if (data.success && data.imageUrl) {
+          img.src = data.imageUrl; downloadBtn.href = data.imageUrl;
+          resultDiv.classList.remove('hidden');
+          showToast("🎨 Rasm muvaffaqiyatli chizildi!");
+        } else { showToast("Xatolik bo'ldi", true); }
+      } catch (e) { showToast("Aloqa xatoligi", true); }
+      finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-palette"></i> <span>Rasm Yaratish (Flux)</span>'; }
+    }
+
+    async function webSearchMusic() {
+      const q = document.getElementById('webMusicQuery').value.trim();
+      const btn = document.getElementById('btnWebMusic');
+      const resultsDiv = document.getElementById('webMusicResults');
+      
+      if (!q) { showToast("Qidiruv so'zini yozing!", true); return; }
+      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      resultsDiv.innerHTML = '';
+      
+      try {
+        const res = await fetch('/api/search-music?q=' + encodeURIComponent(q));
+        const data = await res.json();
+        if (data.success && data.tracks?.length > 0) {
+          data.tracks.forEach(t => {
+            const row = document.createElement('div');
+            row.className = 'bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between text-xs transition-all hover:border-indigo-500/50 mt-2';
+            row.innerHTML = '<div class="flex-1 truncate pr-2"><p class="font-bold text-slate-100 truncate">' + t.title.replace(/'/g, "&apos;") + '</p><p class="text-[10px] text-slate-400 truncate">' + t.artist.replace(/'/g, "&apos;") + '</p></div>' +
+              '<button onclick="playWebMusic(\'' + t.audioUrl.replace(/'/g, "\\'") + '\', \'' + t.title.replace(/'/g, "\\'") + '\')" class="bg-indigo-600/80 text-white rounded-lg p-2 flex items-center justify-center hover:bg-indigo-500 transition-colors"><i class="fas fa-play text-[10px]"></i></button>';
+            resultsDiv.appendChild(row);
+          });
+          showToast("🎵 Qo'shiqlar ro'yxati yuklandi!");
+        } else { showToast("Hech narsa topilmadi", true); }
+      } catch(e) { showToast("Aloqa xatoligi", true); }
+      finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-search"></i>'; }
+    }
+
+    function playWebMusic(url, title) {
+      const player = document.getElementById('webMusicPlayer');
+      const titleEl = document.getElementById('webPlayingTitle');
+      const audio = document.getElementById('webAudioElement');
+      titleEl.innerText = title; audio.src = url;
+      player.classList.remove('hidden'); audio.play();
+      showToast("▶️ " + title + " ijro etilmoqda");
+    }
+
     async function loadUsersList() {
       const container = document.getElementById('usersListContainer');
       container.innerHTML = '<p class="text-center text-xs text-slate-500 py-4"><i class="fas fa-spinner fa-spin mr-1"></i> Foydalanuvchilar yuklanmoqda...</p>';
       try {
         const res = await fetch('/api/users');
         const data = await res.json();
-        if (data.success && data.users && data.users.length > 0) {
+        if (data.success && data.users?.length > 0) {
           container.innerHTML = '';
           data.users.forEach(u => {
-            const name = (u.first_name + ' ' + (u.last_name || '')).trim();
             const date = new Date(u.last_seen).toLocaleString('uz-UZ', { hourCycle: 'h23' });
             const typeBadge = u.chat_type === 'private' ? '<span class="text-[9px] bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded border border-sky-500/30 font-bold">Lichka</span>' : '<span class="text-[9px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-500/30 font-bold">Guruh</span>';
             const row = document.createElement('div');
             row.className = 'bg-slate-900/60 p-3 rounded-2xl border border-slate-800 flex flex-col gap-1 text-xs mt-2';
-            row.innerHTML = '<div class="flex items-center justify-between">' +
-              '<span class="font-extrabold text-slate-200">' + name + '</span>' +
-              typeBadge +
-              '</div>' +
-              '<div class="flex justify-between text-[10px] text-slate-400 mt-1">' +
-              '<span>ID: ' + u.id + '</span>' +
-              '<span>User: <span class="text-indigo-400 font-bold">' + u.username + '</span></span>' +
-              '</div>' +
+            row.innerHTML = '<div class="flex items-center justify-between"><span class="font-extrabold text-slate-200">' + (u.first_name + ' ' + (u.last_name || '')).trim() + '</span>' + typeBadge + '</div>' +
+              '<div class="flex justify-between text-[10px] text-slate-400 mt-1"><span>ID: ' + u.id + '</span><span>User: <span class="text-indigo-400 font-bold">' + u.username + '</span></span></div>' +
               '<div class="text-[9px] text-slate-500 mt-0.5">So\'nggi faollik: ' + date + '</div>';
             container.appendChild(row);
           });
-        } else {
-          container.innerHTML = '<p class="text-center text-xs text-slate-500 py-4">Foydalanuvchilar topilmadi</p>';
-        }
-      } catch (e) {
-        container.innerHTML = '<p class="text-center text-xs text-rose-400 py-4">Yuklashda xatolik yuz berdi</p>';
-      }
+        } else { container.innerHTML = '<p class="text-center text-xs text-slate-500 py-4">Foydalanuvchilar topilmadi</p>'; }
+      } catch (e) { container.innerHTML = '<p class="text-center text-xs text-rose-400 py-4">Yuklashda xatolik yuz berdi</p>'; }
     }
 
     function switchTab(tabId) {
       const contents = document.getElementsByClassName('tab-content');
-      for (let i = 0; i < contents.length; i++) {
-        contents[i].style.display = 'none';
-      }
+      for (const c of contents) c.style.display = 'none';
       const buttons = document.getElementsByClassName('tab-btn');
-      for (let i = 0; i < buttons.length; i++) {
-        buttons[i].classList.remove('active', 'text-indigo-300');
-        buttons[i].classList.add('text-slate-400');
-      }
-      const activeView = document.getElementById('view-' + tabId);
+      for (const b of buttons) { b.classList.remove('active', 'text-indigo-300'); b.classList.add('text-slate-400'); }
+      document.getElementById('view-' + tabId).style.display = 'block';
       const activeBtn = document.getElementById('tab-' + tabId);
-      if (activeView) activeView.style.display = 'block';
-      if (activeBtn) { 
-        activeBtn.classList.add('active', 'text-indigo-300'); 
-        activeBtn.classList.remove('text-slate-400'); 
-      }
+      activeBtn.classList.add('active', 'text-indigo-300'); activeBtn.classList.remove('text-slate-400');
       if (tabId === 'users') loadUsersList();
-      if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+      if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
     }
 
     function refreshLiveStats() { loadAllData(); triggerPing(); loadUsersList(); showToast("Statistika yangilandi 🔄"); }
@@ -645,11 +773,14 @@ if (!fs.existsSync(CLAN_DATA_FILE)) {
 // ==========================================
 // 4. BOT VA GEMINI AI SOZLAMALARI
 // ==========================================
-const botToken = process.env.TELEGRAM_BOT_TOKEN;
-const geminiApiKey = process.env.GEMINI_API_KEY;
+const botToken = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN || "8958192118:AAH-ChmMsPTVKY9k2T4CJuKnVWhyj5a6txo";
+const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY || process.env.API_KEY || "AQ.Ab8RN6IrCXN24qNptQ4o3P0rhoy9tJ44m6MH5PVxmNXPY20Ljw";
 
-if (!botToken || !geminiApiKey) {
-  console.error("XATOLIK: .env faylida TELEGRAM_BOT_TOKEN yoki GEMINI_API_KEY topilmadi!");
+if (!process.env.TELEGRAM_BOT_TOKEN && !process.env.BOT_TOKEN) {
+  console.warn("[Config Warning] TELEGRAM_BOT_TOKEN topilmadi, standart fallback ishlatilmoqda.");
+}
+if (!process.env.GEMINI_API_KEY && !process.env.GEMINI_KEY) {
+  console.warn("[Config Warning] GEMINI_API_KEY topilmadi, standart fallback ishlatilmoqda.");
 }
 
 const bot = new Bot(botToken);
