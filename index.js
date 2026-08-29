@@ -795,7 +795,7 @@ if (!fs.existsSync(CLAN_DATA_FILE)) {
 // 4. BOT VA GEMINI AI SOZLAMALARI
 // ==========================================
 const botToken = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN || "8958192118:AAH-ChmMsPTVKY9k2T4CJuKnVWhyj5a6txo";
-const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY || process.env.API_KEY || "AQ.Ab8RN6L6chyxu3CN0rL8sCgCMzrQqnNLuoj4LuHWI8Z3o8vPcw";
+const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY || process.env.API_KEY || "AQ.Ab8RN6J3JG66E-NzlhJiji50l7oVvytUvMIUg3U4vfYkMJwYOQ";
 
 if (!process.env.TELEGRAM_BOT_TOKEN && !process.env.BOT_TOKEN) {
   console.warn("[Config Warning] TELEGRAM_BOT_TOKEN topilmadi, standart fallback ishlatilmoqda.");
@@ -809,8 +809,8 @@ const ai = new GoogleGenAI({ apiKey: geminiApiKey });
 
 const AI_MODELS = [
   "gemini-3.6-flash",
-  "gemini-2.5-flash-lite",
-  "gemini-1.5-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-3-flash-preview",
 ];
 
 const FUN_EMOJIS = ["🔥", "⚡️", "😎", "🚀", "✨", "🤝", "🙌", "⚽️", "🎮", "💡", "🎯", "👏", "🏆", "🎧", "🎨"];
@@ -1385,8 +1385,62 @@ async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin =
     }
   }
 
-  console.error("[AI Modellar xatolik berdi]:", lastError);
-  return "Hozir bir oz bandroq edim, tez orada to'liqroq javob yozaman! 😊";
+  // Agar Gemini API xatolik bersa, aqlli insoniy javob qaytarish (takroriy xatolik xabari bo'lmasligi uchun)
+  console.error("[AI Modellar xatolik berdi]:", lastError?.message || lastError);
+
+  const rawText = typeof contentPayload === "string" ? contentPayload.toLowerCase().trim() : (queryTextForWeather || "").toLowerCase().trim();
+  const uzTime = getUzbekistanTime();
+
+  // 1. Oilasi haqida
+  if (rawText.includes("oila") || rawText.includes("oilasi")) {
+    return "Onasi — Roziyahon, Otasi — Yosinbek, Opasi — Robiya";
+  }
+
+  // 2. Yaratuvchi / egasi haqida
+  if (rawText.includes("kim yaratgan") || rawText.includes("yaratuvchisi") || rawText.includes("avtori") || rawText.includes("kim bu") || rawText === "kim") {
+    return "Abdulloh Abdug'aniyev";
+  }
+
+  if (rawText.includes("abdulloh haqida") || rawText.includes("egasi haqida") || rawText.includes("abdulloh kim") || rawText.includes("malumot ber")) {
+    return "U hozir band, chunki dam olish vaqtida. Egasi — Abdulloh Abdug'aniyev, 15 yoshda, Andijon viloyati Shahrixon tumanidan, 2-maktab 9-sinf o'quvchisi va KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-Stack dasturchi.";
+  }
+
+  // 3. Clan kodi (faqat guruhda)
+  if (isGroup && (rawText.includes("clan") || rawText.includes("klan") || rawText.includes("kod"))) {
+    return `Clan kodi: ${getClanCode()}`;
+  }
+
+  // 4. Salomlashuvlar
+  if (rawText.includes("assalomu alaykum") || rawText.includes("salom alaykum") || rawText.includes("assalom")) {
+    return "Vaalaykum assalom! Yaxshimisiz? Kayfiyatlar qalay? Sizga qanday yordam bera olaman? 😊";
+  }
+  if (rawText.startsWith("salom") || rawText === "salom" || rawText.includes("salom")) {
+    return "Salom! Ishlar yaxshimi, charchamayapsizmi? Sizga qanday yordam bera olaman? ✨";
+  }
+  if (rawText.includes("qalesan") || rawText.includes("qalaysiz") || rawText.includes("qandaysiz") || rawText.includes("tuzukmisiz") || rawText.includes("yaxshimisiz")) {
+    return "Rahmat, juda yaxshiman! O'zingiz qandaysiz, ishlar joyidami? Marhamat, nima savolingiz bo'lsa bemalol yozing! 😊";
+  }
+  if (rawText.includes("nima gap") || rawText.includes("tinchmi")) {
+    return "Tinchlik, shukr! O'zingizda nima gaplar? Yangiliklar bormi? 😉";
+  }
+
+  // 5. Vaqt va sana
+  if (rawText.includes("soat") || rawText.includes("vaqt") || rawText.includes("sana") || rawText.includes("bugun qaysi kun")) {
+    return `Hozirgi aniq vaqt: ${uzTime.time}, Sana: ${uzTime.date} ⏰`;
+  }
+
+  // 6. Rahmat / Minnatdorchilik
+  if (rawText.includes("rahmat") || rawText.includes("tashakkur") || rawText.includes("spasibo")) {
+    return "Arzimaydi, xursand bo'ldim! Yana savollaringiz bo'lsa bemalol yozing! 🤝✨";
+  }
+
+  // 7. Ob-havo
+  if (weatherContext) {
+    return weatherContext;
+  }
+
+  // 8. Boshqa barcha holatlarda do'stona, insoniy javob
+  return "Tushundim! Marhamat, sizga qanday yordam bera olaman? Istalgan savolingizni bering yoki /musiqa, /rasm buyruqlaridan foydalaning! 😊";
 }
 
 function startTypingIndicator(ctx, isBusiness = false) {
