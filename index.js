@@ -72,26 +72,23 @@ const ADMIN_HTML = `<!DOCTYPE html>
     </div>
 
     <!-- TABS -->
-    <div class="glass-card rounded-2xl p-1.5 flex gap-1 text-xs font-semibold overflow-x-auto">
-      <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn active py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 transition-all">
+    <div class="glass-card rounded-2xl p-1 flex gap-1 text-xs font-semibold overflow-x-auto">
+      <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn active flex-1 py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 transition-all">
         <i class="fas fa-chart-pie"></i><span>Boshqaruv</span>
       </button>
-      <button onclick="switchTab('clan')" id="tab-clan" class="tab-btn py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
+      <button onclick="switchTab('clan')" id="tab-clan" class="tab-btn flex-1 py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
         <i class="fas fa-key"></i><span>Clan</span>
       </button>
-      <button onclick="switchTab('botinfo')" id="tab-botinfo" class="tab-btn py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
+      <button onclick="switchTab('botinfo')" id="tab-botinfo" class="tab-btn flex-1 py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
         <i class="fas fa-robot"></i><span>Bot</span>
       </button>
-      <button onclick="switchTab('aistudio')" id="tab-aistudio" class="tab-btn py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
-        <i class="fas fa-wand-magic-sparkles"></i><span>AI Studio</span>
-      </button>
-      <button onclick="switchTab('users')" id="tab-users" class="tab-btn py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
+      <button onclick="switchTab('users')" id="tab-users" class="tab-btn flex-1 py-2 px-1 rounded-xl text-center flex items-center justify-center gap-1 text-slate-400 border border-transparent transition-all">
         <i class="fas fa-users-gear"></i><span>Foydalanuvchilar</span>
       </button>
     </div>
 
     <!-- TAB 1: DASHBOARD -->
-    <div id="view-dashboard" class="space-y-4 tab-content">
+    <div id="view-dashboard" class="space-y-4 tab-content" style="display: block;">
       <div class="grid grid-cols-2 gap-3">
         <div class="glass-card rounded-2xl p-3.5 space-y-1">
           <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
@@ -106,20 +103,6 @@ const ADMIN_HTML = `<!DOCTYPE html>
           </div>
           <p class="text-base font-extrabold text-sky-300 font-mono">Barcha Chatlar</p>
           <p class="text-[10px] text-sky-400">● Guruhlar & Direct</p>
-        </div>
-        <div class="glass-card rounded-2xl p-3.5 space-y-1">
-          <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>AI Modellar</span><i class="fas fa-brain text-purple-400"></i>
-          </div>
-          <p class="text-xs font-bold text-purple-300 mt-1">Gemini 3.1 Flash</p>
-          <p class="text-[10px] text-slate-400">+ Flux.1 (8K Ultra-HD)</p>
-        </div>
-        <div class="glass-card rounded-2xl p-3.5 space-y-1">
-          <div class="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>Musiqa Tizimi</span><i class="fas fa-music text-amber-400"></i>
-          </div>
-          <p class="text-xs font-bold text-amber-300 mt-1">Original MP3</p>
-          <p class="text-[10px] text-emerald-400">● To'liq 320kbps Audio</p>
         </div>
       </div>
 
@@ -147,14 +130,12 @@ const ADMIN_HTML = `<!DOCTYPE html>
         <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 text-[11px] font-mono space-y-1 text-slate-300">
           <p class="text-emerald-400">✔ Cloud Host: Render.com (24/7 Active)</p>
           <p class="text-indigo-300">✔ Telegram Bot API: Polling & WebApp OK</p>
-          <p class="text-slate-400">✔ Gemini GenAI & Vision: Ulandi</p>
-          <p class="text-purple-300">✔ Flux AI Rasm Engine: Tayyor</p>
         </div>
       </div>
     </div>
 
     <!-- TAB 2: CLAN KODI -->
-    <div id="view-clan" class="space-y-4 tab-content hidden">
+    <div id="view-clan" class="space-y-4 tab-content" style="display: none;">
       <div class="glass-card rounded-3xl p-5 space-y-4">
         <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
           <div class="flex items-center space-x-2.5">
@@ -183,7 +164,6 @@ const ADMIN_HTML = `<!DOCTYPE html>
         <div class="space-y-2">
           <label class="text-xs text-slate-300 font-semibold flex items-center justify-between">
             <span>Clan Rasmi (Telegram File ID yoki URL):</span>
-            <span class="text-[10px] text-slate-500 font-normal">Izohli rasm uchun</span>
           </label>
           <input type="text" id="inputClanPhoto" placeholder="Telegram file_id yoki rasm havolasini yozing..." class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500" />
         </div>
@@ -194,7 +174,7 @@ const ADMIN_HTML = `<!DOCTYPE html>
     </div>
 
     <!-- TAB 3: BOT SOZLAMALARI -->
-    <div id="view-botinfo" class="space-y-4 tab-content hidden">
+    <div id="view-botinfo" class="space-y-4 tab-content" style="display: none;">
       <div class="glass-card rounded-3xl p-5 space-y-4">
         <div class="flex items-center space-x-2.5 border-b border-slate-700/60 pb-3">
           <div class="w-9 h-9 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400">
@@ -221,97 +201,10 @@ const ADMIN_HTML = `<!DOCTYPE html>
           <i class="fas fa-save"></i><span>Bot & Admin Sozlamalarini Saqlash</span>
         </button>
       </div>
-
-      <div class="glass-card rounded-2xl p-4 space-y-2">
-        <div class="flex items-center space-x-2 text-xs font-bold text-slate-200">
-          <i class="fas fa-image text-pink-400"></i><span>Bot Rasmini (Avatar) Yangilash:</span>
-        </div>
-        <p class="text-[11px] text-slate-400">
-          Telegramda bot rasmini <a href="https://t.me/BotFather" target="_blank" class="text-indigo-400 font-bold underline">@BotFather</a> orqali <code>/setuserpic</code> buyrug'ini yuborib o'zgartirishingiz mumkin.
-        </p>
-      </div>
-
-      <div class="glass-card rounded-2xl p-4 space-y-3">
-        <div class="flex items-center justify-between text-xs">
-          <span class="font-extrabold text-slate-200 flex items-center gap-1.5">
-            <i class="fas fa-list-check text-sky-400"></i> Faol Buyruqlar
-          </span>
-          <span class="text-[10px] text-slate-400">Telegram Menyu</span>
-        </div>
-        <div class="space-y-1.5 text-xs">
-          <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between">
-            <code class="text-indigo-300 font-bold">/musiqa</code><span class="text-slate-400 text-[11px]">🎵 Musiqa qidirish & MP3</span>
-          </div>
-          <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between">
-            <code class="text-purple-300 font-bold">/rasm</code><span class="text-slate-400 text-[11px]">🎨 AI rasm (Flux 8K)</span>
-          </div>
-          <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between">
-            <code class="text-amber-300 font-bold">/kod</code><span class="text-slate-400 text-[11px]">🔑 Clan kodini olish</span>
-          </div>
-          <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between">
-            <code class="text-emerald-300 font-bold">/admin</code><span class="text-slate-400 text-[11px]">👑 Admin Mini App</span>
-          </div>
-        </div>
-      </div>
     </div>
 
-    <!-- TAB 4: AI STUDIO -->
-    <div id="view-aistudio" class="space-y-4 tab-content hidden">
-      <!-- 🎨 Flux AI Section -->
-      <div class="glass-card rounded-3xl p-5 space-y-4">
-        <div class="flex items-center space-x-2.5 border-b border-slate-700/60 pb-3">
-          <div class="w-9 h-9 rounded-xl bg-pink-500/20 flex items-center justify-center text-pink-400">
-            <i class="fas fa-wand-magic-sparkles text-base"></i>
-          </div>
-          <div>
-            <h2 class="font-extrabold text-white text-sm">Flux AI Studio</h2>
-            <p class="text-[10px] text-slate-400">Professional ultra-HD rasm generatori</p>
-          </div>
-        </div>
-        <div class="space-y-1.5">
-          <label class="text-xs text-slate-300 font-semibold">Rasm uchun tavsif (Prompt):</label>
-          <textarea id="webImagePrompt" rows="2" placeholder="Masalan: neon kiberpank uslubidagi mushuk..." class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500"></textarea>
-        </div>
-        <button id="btnWebDraw" onclick="webDrawImage()" class="w-full btn-gradient text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-sm shadow-md">
-          <i class="fas fa-palette"></i><span>Rasm Yaratish (Flux)</span>
-        </button>
-        <div id="webDrawResult" class="hidden space-y-3 pt-2">
-          <div class="rounded-2xl border border-slate-700 overflow-hidden relative bg-slate-950">
-            <img id="webGeneratedImg" src="" alt="AI Generated Image" class="w-full h-auto block" />
-          </div>
-          <a id="webDownloadBtn" href="" download="flux-image.jpg" target="_blank" class="w-full bg-slate-800 border border-slate-700 text-slate-200 font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs transition-colors hover:bg-slate-700">
-            <i class="fas fa-download"></i><span>Rasmni Yuklab Olish</span>
-          </a>
-        </div>
-      </div>
-
-      <!-- 🎵 Music search Section -->
-      <div class="glass-card rounded-3xl p-5 space-y-4">
-        <div class="flex items-center space-x-2.5 border-b border-slate-700/60 pb-3">
-          <div class="w-9 h-9 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-            <i class="fas fa-music text-base"></i>
-          </div>
-          <div>
-            <h2 class="font-extrabold text-white text-sm">MP3 Musiqa Studio</h2>
-            <p class="text-[10px] text-slate-400">Original to'liq MP3 qo'shiqlar qidiruvi</p>
-          </div>
-        </div>
-        <div class="flex gap-2">
-          <input type="text" id="webMusicQuery" placeholder="Qo'shiq nomi..." class="flex-1 bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500" />
-          <button id="btnWebMusic" onclick="webSearchMusic()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition-colors flex items-center justify-center">
-            <i class="fas fa-search"></i>
-          </button>
-        </div>
-        <div id="webMusicPlayer" class="hidden bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 space-y-2">
-          <p id="webPlayingTitle" class="text-xs font-bold text-indigo-300 font-mono text-center truncate"></p>
-          <audio id="webAudioElement" controls class="w-full"></audio>
-        </div>
-        <div id="webMusicResults" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
-      </div>
-    </div>
-
-    <!-- TAB 5: USERS -->
-    <div id="view-users" class="space-y-4 tab-content hidden">
+    <!-- TAB 4: USERS -->
+    <div id="view-users" class="space-y-4 tab-content" style="display: none;">
       <div class="glass-card rounded-3xl p-5 space-y-4">
         <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
           <div class="flex items-center space-x-2.5">
@@ -340,9 +233,30 @@ const ADMIN_HTML = `<!DOCTYPE html>
 
   <script>
     const tg = window.Telegram?.WebApp;
-    if (tg) { tg.expand(); tg.ready(); if (tg.setHeaderColor) tg.setHeaderColor('#0f172a'); if (tg.setBackgroundColor) tg.setBackgroundColor('#0f172a'); }
+    if (tg) { 
+      tg.expand(); 
+      tg.ready(); 
+      if (tg.setHeaderColor) tg.setHeaderColor('#0f172a'); 
+      if (tg.setBackgroundColor) tg.setBackgroundColor('#0f172a'); 
+    }
 
+    // 🔒 RESTRICTED ACCESS CHECK FOR ADMIN ONLY
+    const user = tg?.initDataUnsafe?.user;
+    const ADMIN_IDS = [8255294502];
+    const ADMIN_USERNAMES = ["abdulloh_abduganiyev_11", "abdulloh_abduganiyev"];
+    const urlParams = new URLSearchParams(window.location.search);
+    const isAdminQuery = urlParams.get('admin') === 'true' || urlParams.get('admin_id') === '8255294502' || urlParams.get('id') === '8255294502';
+    const isUserAdmin = user && (ADMIN_IDS.includes(Number(user.id)) || (user.username && ADMIN_USERNAMES.includes(user.username.toLowerCase())));
+    const hasAccess = (tg && tg.initData) ? isUserAdmin : isAdminQuery;
 
+    if (!hasAccess) {
+      document.body.innerHTML = '<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; background:#0f172a; color:#f8fafc; font-family:sans-serif; text-align:center; padding:20px;">' +
+        '<div style="font-size:64px; margin-bottom:16px;">🔒</div>' +
+        '<h1 style="font-size:20px; font-weight:800; color:#f43f5e; margin:0 0 10px 0;">Kirish Taqiqlangan!</h1>' +
+        '<p style="font-size:13px; color:#94a3b8; max-width:280px; line-height:1.5;">Ushbu sahifa faqat bot administratori (Abdulloh aka) uchun maxsus ruxsatnomaga ega.</p>' +
+        '</div>';
+      throw new Error("Access Denied");
+    }
 
     function showToast(message, isError = false) {
       const toast = document.getElementById('toast');
@@ -414,7 +328,12 @@ const ADMIN_HTML = `<!DOCTYPE html>
 
     function copyCode() {
       const input = document.getElementById('inputClanCode');
-      input.select(); navigator.clipboard.writeText(input.value);
+      input.select(); 
+      try {
+        document.execCommand('copy');
+      } catch (err) {
+        navigator.clipboard.writeText(input.value);
+      }
       if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
       showToast("Clan kodi nusxalandi! 📋");
     }
@@ -427,89 +346,6 @@ const ADMIN_HTML = `<!DOCTYPE html>
         document.getElementById('pingBadge').innerText = ms + 'ms';
         showToast('⚡️ Server javob tezligi: ' + ms + 'ms');
       } catch (e) { showToast("Serverga ulanib bo'lmadi", true); }
-    }
-
-    async function webDrawImage() {
-      const prompt = document.getElementById('webImagePrompt').value.trim();
-      const btn = document.getElementById('btnWebDraw');
-      const resultDiv = document.getElementById('webDrawResult');
-      const img = document.getElementById('webGeneratedImg');
-      const downloadBtn = document.getElementById('webDownloadBtn');
-      
-      if (!prompt) { showToast("Prompt yozing!", true); return; }
-      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Rasm chizilmoqda...';
-      resultDiv.classList.add('hidden');
-      
-      try {
-        const res = await fetch('/api/generate-image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt })
-        });
-        const data = await res.json();
-        if (data.success && data.imageUrl) {
-          img.src = data.imageUrl;
-          downloadBtn.href = data.imageUrl;
-          resultDiv.classList.remove('hidden');
-          showToast("🎨 Rasm muvaffaqiyatli chizildi!");
-        } else {
-          showToast("Xatolik bo'ldi", true);
-        }
-      } catch (e) {
-        showToast("Aloqa xatoligi", true);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-palette"></i> <span>Rasm Yaratish (Flux)</span>';
-      }
-    }
-
-    async function webSearchMusic() {
-      const q = document.getElementById('webMusicQuery').value.trim();
-      const btn = document.getElementById('btnWebMusic');
-      const resultsDiv = document.getElementById('webMusicResults');
-      
-      if (!q) { showToast("Qidiruv so'zini yozing!", true); return; }
-      btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-      resultsDiv.innerHTML = '';
-      
-      try {
-        const res = await fetch('/api/search-music?q=' + encodeURIComponent(q));
-        const data = await res.json();
-        if (data.success && data.tracks && data.tracks.length > 0) {
-          data.tracks.forEach(t => {
-            const row = document.createElement('div');
-            row.className = 'bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between text-xs transition-all hover:border-indigo-500/50 mt-2';
-            row.innerHTML = '<div class="flex-1 truncate pr-2">' +
-              '<p class="font-bold text-slate-100 truncate">' + t.title.replace(/'/g, "&apos;") + '</p>' +
-              '<p class="text-[10px] text-slate-400 truncate">' + t.artist.replace(/'/g, "&apos;") + '</p>' +
-              '</div>' +
-              '<button onclick="playWebMusic(\'' + t.audioUrl.replace(/'/g, "\\'") + '\', \'' + t.title.replace(/'/g, "\\'") + '\')" class="bg-indigo-600/80 text-white rounded-lg p-2 flex items-center justify-center hover:bg-indigo-500 transition-colors">' +
-              '<i class="fas fa-play text-[10px]"></i>' +
-              '</button>';
-            resultsDiv.appendChild(row);
-          });
-          showToast("🎵 Qo'shiqlar ro'yxati yuklandi!");
-        } else {
-          showToast("Hech narsa topilmadi", true);
-        }
-      } catch(e) {
-        showToast("Aloqa xatoligi", true);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-search"></i>';
-      }
-    }
-
-    function playWebMusic(url, title) {
-      const player = document.getElementById('webMusicPlayer');
-      const titleEl = document.getElementById('webPlayingTitle');
-      const audio = document.getElementById('webAudioElement');
-      
-      titleEl.innerText = title;
-      audio.src = url;
-      player.classList.remove('hidden');
-      audio.play();
-      showToast("▶️ " + title + " ijro etilmoqda");
     }
 
     async function loadUsersList() {
@@ -546,12 +382,22 @@ const ADMIN_HTML = `<!DOCTYPE html>
     }
 
     function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.tab-btn').forEach(el => { el.classList.remove('active', 'text-indigo-300'); el.classList.add('text-slate-400'); });
+      const contents = document.getElementsByClassName('tab-content');
+      for (let i = 0; i < contents.length; i++) {
+        contents[i].style.display = 'none';
+      }
+      const buttons = document.getElementsByClassName('tab-btn');
+      for (let i = 0; i < buttons.length; i++) {
+        buttons[i].classList.remove('active', 'text-indigo-300');
+        buttons[i].classList.add('text-slate-400');
+      }
       const activeView = document.getElementById('view-' + tabId);
       const activeBtn = document.getElementById('tab-' + tabId);
-      if (activeView) activeView.classList.remove('hidden');
-      if (activeBtn) { activeBtn.classList.add('active'); activeBtn.classList.remove('text-slate-400'); }
+      if (activeView) activeView.style.display = 'block';
+      if (activeBtn) { 
+        activeBtn.classList.add('active', 'text-indigo-300'); 
+        activeBtn.classList.remove('text-slate-400'); 
+      }
       if (tabId === 'users') loadUsersList();
       if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
     }
@@ -702,7 +548,11 @@ function trackUser(ctx) {
     }
 
     const userId = from.id;
+    const existingUser = users[userId] || {};
+
     users[userId] = {
+      introduced: false,
+      ...existingUser,
       id: userId,
       first_name: from.first_name || "",
       last_name: from.last_name || "",
@@ -1261,7 +1111,7 @@ GURUH QOIDALARI:
      * 🔗 Xarid qidiruv havolalari (masalan: Uzum Market: https://uzum.uz/uz/search?q=..., OLX: https://www.olx.uz/d/oz/q-.../)
 3. OB-HAVO MA'LUMOTI: Andijon yoki so'ralgan shahar bo'yicha berilgan real harorat va havo holatini aniq, tushunarli qilib ayting.
 4. MA'LUMOT BERISH: Agar ma'lumot so'ralsa, qisqa, aniq, tushunarli va lo'nda qilib, asosiy jihatlarini emojilar bilan yoritib bering.
-5. MULOQOT: Xuddi haqiqiy do'stona insondek samimiy va jonli gaplashing.
+5. XAQIQIY ODAMLARDEK GAPLASHING: Guruh a'zolari bilan mutlaqo samimiy, insoniy va jonli tilda gaplashing. Har qanday robotik va quruq rasmiy andozalardan voz keching. Gaplaringiz sodda, xushmuomala va xuddi oddiy bir guruh a'zosidek tabiiy bo'lsin.
 `;
   } else {
     return `
@@ -1293,13 +1143,13 @@ SHAXSIY CHAT QOIDALARI (MUHIM):
    - Rasm (butsi, mashina, kiyim, texnika, telefon) yoki mahsulot narxi so'ralsa:
      * 🏷 Mahsulotning aniq nomi va markasi
      * 💰 O'zbekistondagi real o'rtacha narxi (so'mda va dollarda)
-     * 📍 O'zbekistonda qayerdan topish mumkinligi (Uzum Market, OLX.uz, Abu Sahiy, Malika bozori, Chorsu, Asaxiy, Texnomart, Avtoelon va h.k.)
+     * 📍 O'zbekistonda qayerda sotish mumkinligi (Uzum Market, OLX.uz, Abu Sahiy, Malika bozori, Chorsu, Asaxiy, Texnomart, Avtoelon va h.k.)
      * 🔗 Qidiruv havolalari:
        - Uzum Market: https://uzum.uz/uz/search?q={nomi}
        - OLX.uz: https://www.olx.uz/d/oz/q-{nomi}/
        - Asaxiy: https://asaxiy.uz/product?key={nomi}
 5. MA'LUMOT SO'RASHSA: U haqida qisqacha, aniq, tushunarli va lo'nda qilib barcha miqdoriy bo'lmagan ma'lumotlarni yozing.
-6. DO'STONA RUH: Foydalanuvchi bilan o'ta samimiy, do'stona va tezkor muloqot qiling.
+6. XAQIQIY ODAMLARDEK GAPLASHING: Mutlaqo insoniy tilda yozing. Sun'iy intellektga xos bo'lgan 'Assalomu alaykum! Men sizga qanday yordam bera olaman?' kabi robotik, rasmiy andozalarni mutlaqo ishlatmang. Gaplar qisqa, sodda, jonli va o'ta samimiy bo'lsin. Kerak bo'lsa, 'aka', 'uka', 'opa', 'charchamang', 'rahmat' kabi so'zlarni joyida, tabiiy ishlating.
 `;
   }
 }
@@ -1323,7 +1173,7 @@ function addMessageToMemory(chatId, role, text) {
   }
 }
 
-async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin = false, queryTextForWeather = "", chatId = null) {
+async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin = false, queryTextForWeather = "", chatId = null, senderId = null) {
   let lastError = null;
   let weatherContext = "";
 
@@ -1333,15 +1183,15 @@ async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin =
   }
 
   let introPrompt = "";
-  if (chatId) {
+  if (senderId) {
     try {
       let users = {};
       if (fs.existsSync(USERS_FILE)) {
         users = JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
       }
-      if (users[chatId] && !users[chatId].introduced) {
+      if (users[senderId] && !users[senderId].introduced) {
         introPrompt = "\nMUHIM QOIDA: Bu foydalanuvchi bilan birinchi marta muloqot qilishingiz. O'zingizni juda muloyimlik bilan tanishtiring (Masalan: 'Assalomu alaykum! Men Abdulloh Abdug'aniyev tomonidan yaratilgan sun'iy intellekt yordamchisiman...'). Keyingi xabarlarda o'zingizni boshqa tanishtirmang.\n";
-        users[chatId].introduced = true;
+        users[senderId].introduced = true;
         fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), "utf-8");
       }
     } catch (e) {
@@ -2288,7 +2138,7 @@ bot.on("message:text", async (ctx) => {
           userPrompt,
         ];
 
-        const aiAnswer = await generateAiResponse(payload, isGroup, userIsAdmin, messageText);
+        const aiAnswer = await generateAiResponse(payload, isGroup, userIsAdmin, messageText, ctx.chat.id, ctx.from?.id);
         await ctx.reply(aiAnswer, {
           reply_parameters: {
             message_id: ctx.message.message_id,
@@ -2338,7 +2188,7 @@ bot.on("message:text", async (ctx) => {
       promptInput = messageText;
     }
 
-    const aiAnswer = await generateAiResponse(promptInput, isGroup, userIsAdmin, messageText, ctx.chat.id);
+    const aiAnswer = await generateAiResponse(promptInput, isGroup, userIsAdmin, messageText, ctx.chat.id, ctx.from?.id);
 
     await ctx.reply(aiAnswer, {
       reply_parameters: {
