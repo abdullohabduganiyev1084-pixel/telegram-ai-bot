@@ -412,16 +412,20 @@ const ADMIN_HTML = `<!DOCTYPE html>
         if (d.success && d.users && d.users.length > 0) {
           c.innerHTML = '';
           d.users.forEach(function(u) {
-            var name = ((u.first_name||'') + ' ' + (u.last_name||'')).trim() || "Noma'lum";
-            var date = u.last_seen ? new Date(u.last_seen).toLocaleString('uz-UZ',{hourCycle:'h23'}) : '—';
+            var fname = u.first_name || '';
+            var lname = u.last_name || '';
+            var name = (fname + ' ' + lname).trim() || 'Noma&#39;lum';
+            var date = u.last_seen ? new Date(u.last_seen).toLocaleString('uz-UZ',{hourCycle:'h23'}) : '-';
+            var uname = u.username || 'Yo&#39;q';
             var badge = u.chat_type === 'private'
               ? '<span class="text-[9px] bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded border border-sky-500/30 font-bold">Lichka</span>'
               : '<span class="text-[9px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-500/30 font-bold">Guruh</span>';
             var row = document.createElement('div');
             row.className = 'bg-slate-900/60 p-3 rounded-2xl border border-slate-800 flex flex-col gap-1 text-xs mt-2';
-            row.innerHTML = '<div class="flex items-center justify-between"><span class="font-extrabold text-slate-200">' + name + '</span>' + badge + '</div>' +
-              '<div class="flex justify-between text-[10px] text-slate-400 mt-1"><span>ID: '+(u.id||'—')+'</span><span>@<span class="text-indigo-400 font-bold">'+(u.username||"Yo'q")+'</span></span></div>' +
-              '<div class="text-[9px] text-slate-500 mt-0.5">So\'nggi faollik: ' + date + '</div>';
+            row.innerHTML =
+              '<div class="flex items-center justify-between"><span class="font-extrabold text-slate-200">' + name + '</span>' + badge + '</div>' +
+              '<div class="flex justify-between text-[10px] text-slate-400 mt-1"><span>ID: ' + (u.id||'-') + '</span><span>@<span class="text-indigo-400 font-bold">' + uname + '</span></span></div>' +
+              '<div class="text-[9px] text-slate-500 mt-0.5">Oxirgi faollik: ' + date + '</div>';
             c.appendChild(row);
           });
         } else { c.innerHTML = '<p class="text-center text-xs text-slate-500 py-4">Foydalanuvchilar topilmadi</p>'; }
