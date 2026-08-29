@@ -808,9 +808,10 @@ const bot = new Bot(botToken);
 const ai = new GoogleGenAI({ apiKey: geminiApiKey });
 
 const AI_MODELS = [
-  "gemini-3.6-flash",
-  "gemini-3.5-flash-lite",
-  "gemini-3-flash-preview",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-1.5-pro",
+  "gemini-2.0-flash-exp",
 ];
 
 const FUN_EMOJIS = ["🔥", "⚡️", "😎", "🚀", "✨", "🤝", "🙌", "⚽️", "🎮", "💡", "🎯", "👏", "🏆", "🎧", "🎨"];
@@ -826,7 +827,7 @@ function getRandomEmoji() {
 async function enhancePromptWithGemini(userQuery) {
   try {
     const res = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-1.5-flash",
       contents: `Foydalanuvchi so'rovi: "${userQuery}".\nBuni eng so'nggi Flux / Nano Banana AI rasm generatori uchun professional, ultra-realistik 8k, fotorealistik bitta toza inglizcha promptga aylantiring. Faqat va faqat toza inglizcha prompt matnini qaytaring, boshqa hech qanday so'z yoki qo'shimcha yozmang.`,
       config: {
         maxOutputTokens: 150,
@@ -1379,66 +1380,10 @@ async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin =
     }
   }
 
-  // Agar Gemini API xatolik bersa, aqlli insoniy javob qaytarish (takroriy xatolik xabari bo'lmasligi uchun)
   console.error("[AI Modellar xatolik berdi]:", lastError?.message || lastError);
 
-  const rawText = typeof contentPayload === "string" ? contentPayload.toLowerCase().trim() : (queryTextForWeather || "").toLowerCase().trim();
-  const uzTime = getUzbekistanTime();
-
-  // 1. Oilasi haqida
-  if (rawText.includes("oila") || rawText.includes("oilasi")) {
-    return "Onasi — Roziyahon, Otasi — Yosinbek, Opasi — Robiya";
-  }
-
-  // 2. Yaratuvchi / egasi haqida va kun tartibi
-  if (rawText.includes("nima qilyapti") || rawText.includes("qani") || rawText.includes("bandmi") || rawText.includes("uyqudami")) {
-    return getAbdullohCurrentStatus();
-  }
-
-  if (rawText.includes("abdulloh haqida") || rawText.includes("egasi haqida") || rawText.includes("abdulloh kim") || rawText.includes("malumot ber")) {
-    return `${getAbdullohCurrentStatus()} Egasi — Abdulloh Abdug'aniyev, 15 yoshda, Andijon viloyati Shahrixon tumanidan, 2-maktab 9-sinf o'quvchisi va KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-Stack dasturchi.`;
-  }
-
-  if (rawText.includes("kim yaratgan") || rawText.includes("yaratuvchisi") || rawText.includes("avtori") || rawText.includes("kim bu") || rawText === "kim") {
-    return "Abdulloh Abdug'aniyev";
-  }
-
-  // 3. Clan kodi
-  if (rawText.includes("clan") || rawText.includes("klan") || rawText.includes("kod")) {
-    return `🎮 Clan kodi: ${getClanCode()}`;
-  }
-
-  // 4. Salomlashuvlar
-  if (rawText.includes("assalomu alaykum") || rawText.includes("salom alaykum") || rawText.includes("assalom")) {
-    return "Vaalaykum assalom! Yaxshimisiz? Kayfiyatlar qalay? Sizga qanday yordam bera olaman? 😊";
-  }
-  if (rawText.startsWith("salom") || rawText === "salom" || rawText.includes("salom")) {
-    return "Salom! Ishlar yaxshimi, charchamayapsizmi? Sizga qanday yordam bera olaman? ✨";
-  }
-  if (rawText.includes("qalesan") || rawText.includes("qalaysiz") || rawText.includes("qandaysiz") || rawText.includes("tuzukmisiz") || rawText.includes("yaxshimisiz")) {
-    return "Rahmat, juda yaxshiman! O'zingiz qandaysiz, ishlar joyidami? Marhamat, nima savolingiz bo'lsa bemalol yozing! 😊";
-  }
-  if (rawText.includes("nima gap") || rawText.includes("tinchmi")) {
-    return "Tinchlik, shukr! O'zingizda nima gaplar? Yangiliklar bormi? 😉";
-  }
-
-  // 5. Vaqt va sana
-  if (rawText.includes("soat") || rawText.includes("vaqt") || rawText.includes("sana") || rawText.includes("bugun qaysi kun")) {
-    return `Hozirgi aniq vaqt: ${uzTime.time}, Sana: ${uzTime.date} ⏰`;
-  }
-
-  // 6. Rahmat / Minnatdorchilik
-  if (rawText.includes("rahmat") || rawText.includes("tashakkur") || rawText.includes("spasibo")) {
-    return "Arzimaydi, xursand bo'ldim! Yana savollaringiz bo'lsa bemalol yozing! 🤝✨";
-  }
-
-  // 7. Ob-havo
-  if (weatherContext) {
-    return weatherContext;
-  }
-
-  // 8. Boshqa barcha holatlarda do'stona, insoniy javob
-  return "Ha, eshitaman! Sizga qanday yordam bera olaman? Bemalol yozing. 😊";
+  // Tarmoq uzilganda yoki API vaqtincha javob bermaganda toza zaxira javobi
+  return "Hozir bir oz tarmoqda uzilish bo'ldi. Birozdan so'ng qayta yozib ko'ring, iltimos! 😊";
 }
 
 function startTypingIndicator(ctx, isBusiness = false) {
