@@ -1393,12 +1393,16 @@ async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin =
     return "Onasi — Roziyahon, Otasi — Yosinbek, Opasi — Robiya";
   }
 
-  // 2. Yaratuvchi / egasi haqida va kun tartibi
+  // 2. O'zi va Yaratuvchi haqida
+  if (rawText.includes("sen kimsan") || rawText.includes("kimsan") || rawText.includes("bot kimsan") || rawText.includes("isming nima")) {
+    return "Men Abdulloh Abdug'aniyev tomonidan yaratilgan sun'iy intellekt yordamchisiman. Sizga har qanday savolingiz bo'yicha yordam berishga tayyorman! 😊";
+  }
+
   if (rawText.includes("nima qilyapti") || rawText.includes("qani") || rawText.includes("bandmi") || rawText.includes("uyqudami")) {
     return getAbdullohCurrentStatus();
   }
 
-  if (rawText.includes("abdulloh haqida") || rawText.includes("egasi haqida") || rawText.includes("abdulloh kim") || rawText.includes("malumot ber")) {
+  if (rawText.includes("abdulloh haqida") || rawText.includes("egasi haqida") || rawText.includes("abdulloh kim") || rawText.includes("malumot ber") && (rawText.includes("abdulloh") || rawText.includes("egasi"))) {
     return `${getAbdullohCurrentStatus()} Egasi — Abdulloh Abdug'aniyev, 15 yoshda, Andijon viloyati Shahrixon tumanidan, 2-maktab 9-sinf o'quvchisi va KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-Stack dasturchi.`;
   }
 
@@ -1406,12 +1410,17 @@ async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin =
     return "Abdulloh Abdug'aniyev";
   }
 
-  // 3. Clan kodi
+  // 3. O'zbekiston haqida ma'lumot
+  if (rawText.includes("o'zbekiston") || rawText.includes("ozbekiston") || rawText.includes("uzbekiston")) {
+    return "🇺🇿 O'zbekiston — Markaziy Osiyodagi boy tarix va madaniyatga ega go'zal davlat.\n• Poytaxti: Toshkent shahri\n• Aholisi: 37 milliondan ortiq\n• Tarixiy shaharlari: Samarqand, Buxoro, Xiva, Qo'qon, Andijon\n• Rasmiy tili: O'zbek tili\n• Pul birligi: O'zbek so'mi";
+  }
+
+  // 4. Clan kodi
   if (rawText.includes("clan") || rawText.includes("klan") || rawText.includes("kod")) {
     return `🎮 Clan kodi: ${getClanCode()}`;
   }
 
-  // 4. Salomlashuvlar va hol-ahvol
+  // 5. Salomlashuvlar va hol-ahvol
   if (rawText.includes("assalomu alaykum") || rawText.includes("salom alaykum") || rawText.includes("assalom")) {
     return "Vaalaykum assalom! Yaxshimisiz? Kayfiyatlar qalay? Sizga qanday yordam bera olaman? 😊";
   }
@@ -1425,23 +1434,27 @@ async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin =
     return "Tinchlik, shukr! O'zingizda nima gaplar? Yangiliklar bormi? 😉";
   }
 
-  // 5. Vaqt va sana
+  // 6. Vaqt va sana
   if (rawText.includes("soat") || rawText.includes("vaqt") || rawText.includes("sana") || rawText.includes("bugun qaysi kun")) {
     return `Hozirgi aniq vaqt: ${uzTime.time}, Sana: ${uzTime.date} ⏰`;
   }
 
-  // 6. Rahmat / Minnatdorchilik
+  // 7. Rahmat / Minnatdorchilik
   if (rawText.includes("rahmat") || rawText.includes("tashakkur") || rawText.includes("spasibo")) {
     return "Arzimaydi, xursand bo'ldim! Yana savollaringiz bo'lsa bemalol yozing! 🤝✨";
   }
 
-  // 7. Ob-havo
+  // 8. Ob-havo
   if (weatherContext) {
     return weatherContext;
   }
 
-  // 8. Boshqa barcha holatlarda do'stona, insoniy javob
-  return "Salom! Savolingizni bemalol yozing, sizga yordam berishdan xursandman. 😊";
+  // 9. Boshqa barcha savollar uchun do'stona va foydali javob
+  if (typeof contentPayload === "string" && contentPayload.length > 0) {
+    return `"${contentPayload}" bo'yicha savolingiz qabul qilindi. Men har qanday ma'lumotlar, bilimlar va vazifalarda sizga yordam berishga tayyorman! Savolingizni yanada aniqroq bersangiz, batafsil tushuntirib beraman. 😊`;
+  }
+
+  return "Sizga qanday yordam bera olaman? Bemalol savolingizni yozing! 😊";
 }
 
 function startTypingIndicator(ctx, isBusiness = false) {
