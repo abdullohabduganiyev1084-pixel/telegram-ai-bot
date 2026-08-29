@@ -808,13 +808,12 @@ const bot = new Bot(botToken);
 const ai = new GoogleGenAI({ apiKey: geminiApiKey });
 
 const AI_MODELS = [
+  "gemini-3.6-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-3-flash-preview",
   "gemini-2.0-flash",
   "gemini-2.5-flash",
   "gemini-1.5-flash",
-  "gemini-3.6-flash",
-  "gemini-3.5-flash-lite",
-  "gemini-1.5-pro",
-  "gemini-2.0-flash-exp",
 ];
 
 const FUN_EMOJIS = ["🔥", "⚡️", "😎", "🚀", "✨", "🤝", "🙌", "⚽️", "🎮", "💡", "🎯", "👏", "🏆", "🎧", "🎨"];
@@ -830,7 +829,7 @@ function getRandomEmoji() {
 async function enhancePromptWithGemini(userQuery) {
   try {
     const res = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3.6-flash",
       contents: `Foydalanuvchi so'rovi: "${userQuery}".\nBuni eng so'nggi Flux / Nano Banana AI rasm generatori uchun professional, ultra-realistik 8k, fotorealistik bitta toza inglizcha promptga aylantiring. Faqat va faqat toza inglizcha prompt matnini qaytaring, boshqa hech qanday so'z yoki qo'shimcha yozmang.`,
       config: {
         maxOutputTokens: 150,
@@ -1358,6 +1357,7 @@ async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin =
     contents = Array.isArray(contentPayload) ? contentPayload : [contentPayload];
   }
 
+  // Gemini SDK orqali javob olamiz
   for (const modelName of AI_MODELS) {
     try {
       const response = await ai.models.generateContent({
@@ -1372,6 +1372,7 @@ async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin =
 
       if (response && response.text) {
         const textResponse = response.text;
+        console.log(`[Gemini OK: ${modelName}]`);
         if (chatId && typeof contentPayload === "string") {
           addMessageToMemory(chatId, "model", textResponse);
         }
@@ -1383,78 +1384,51 @@ async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin =
     }
   }
 
-  console.error("[AI Modellar xatolik berdi]:", lastError?.message || lastError);
+  // Gemini API ishlamaganda Pollinations bepul AI ga murojaat qilamiz
+  // Anonymous (kalitsiz) GET endpoint hamma savolga javob beradi
+  try {
+    const sysPrompt = encodeURIComponent(
+      `Siz O'zbekiston Telegram botisiz. Egangiz Abdulloh Abdug'aniyev. ` +
+      `O'zbek tilida qisqa, aniq va insoniy javob bering. Robotic gapirmang. ` +
+      `Musiqa yoki rasm taklif qilmang. Clan kodi: ${getClanCode()}.`
+    );
+    const userMsg = encodeURIComponent(
+      typeof contentPayload === "string" ? contentPayload : (queryTextForWeather || "Salom")
+    );
+    const pollinationsUrl = `https://text.pollinations.ai/${userMsg}?system=${sysPrompt}&model=openai&private=true`;
+    const response = await fetch(pollinationsUrl);
+    if (response.ok) {
+      const text = await response.text();
+      if (text && text.length > 5 && !text.startsWith("{")) {
+        if (chatId && typeof contentPayload === "string") {
+          addMessageToMemory(chatId, "model", text);
+        }
+        return text;
+      }
+    }
+  } catch (fallbackErr) {
+    console.warn("[Pollinations fallback err]:", fallbackErr?.message);
+  }
 
+  // Oxirgi zaxira: asosiy mavzular bo'yicha to'g'ridan-to'g'ri javob
   const rawText = typeof contentPayload === "string" ? contentPayload.toLowerCase().trim() : (queryTextForWeather || "").toLowerCase().trim();
   const uzTime = getUzbekistanTime();
 
-  // 1. Oilasi haqida
-  if (rawText.includes("oila") || rawText.includes("oilasi")) {
-    return "Onasi — Roziyahon, Otasi — Yosinbek, Opasi — Robiya";
-  }
+  if (rawText.includes("oila") || rawText.includes("oilasi")) return "Onasi — Roziyahon, Otasi — Yosinbek, Opasi — Robiya";
+  if (rawText.includes("sen kimsan") || rawText.includes("kimsan") || rawText.includes("isming nima")) return "Men Abdulloh Abdug'aniyev tomonidan yaratilgan sun'iy intellekt yordamchisiman 😊";
+  if (rawText.includes("nima qilyapti") || rawText.includes("qani") || rawText.includes("bandmi")) return getAbdullohCurrentStatus();
+  if (rawText.includes("abdulloh") && (rawText.includes("haqida") || rawText.includes("kim"))) return `${getAbdullohCurrentStatus()} Egasi — Abdulloh Abdug'aniyev, 15 yoshda, Andijon viloyati Shahrixon tumani.`;
+  if (rawText.includes("kim yaratgan") || rawText.includes("yaratuvchisi") || rawText.includes("avtori")) return "Abdulloh Abdug'aniyev";
+  if (rawText.includes("o'zbekiston") || rawText.includes("ozbekiston")) return "🇺🇿 O'zbekiston — Markaziy Osiyoda joylashgan davlat. Poytaxti — Toshkent. Aholisi 37 million. Tarixiy shaharlari: Samarqand, Buxoro, Xiva, Andijon.";
+  if (rawText.includes("clan") || rawText.includes("klan") || rawText.includes("kod")) return `🎮 Clan kodi: ${getClanCode()}`;
+  if (rawText.includes("assalomu") || rawText.includes("salom alaykum")) return "Vaalaykum assalom! Sizga qanday yordam bera olaman? 😊";
+  if (rawText.startsWith("salom") || rawText === "salom") return "Salom! Sizga qanday yordam bera olaman? ✨";
+  if (rawText.includes("qalaysiz") || rawText.includes("qandaysiz") || rawText.includes("yaxshimisiz")) return "Rahmat, yaxshiman! O'zingiz qandaysiz? Marhamat, savolingizni yozing 😊";
+  if (rawText.includes("rahmat") || rawText.includes("tashakkur")) return "Arzimaydi! Yana savollaringiz bo'lsa yozing 🤝";
+  if (rawText.includes("soat") || rawText.includes("vaqt") || rawText.includes("sana")) return `Hozirgi vaqt: ${uzTime.time} | Sana: ${uzTime.date} ⏰`;
+  if (weatherContext) return weatherContext;
 
-  // 2. O'zi va Yaratuvchi haqida
-  if (rawText.includes("sen kimsan") || rawText.includes("kimsan") || rawText.includes("bot kimsan") || rawText.includes("isming nima")) {
-    return "Men Abdulloh Abdug'aniyev tomonidan yaratilgan sun'iy intellekt yordamchisiman. Sizga har qanday savolingiz bo'yicha yordam berishga tayyorman! 😊";
-  }
-
-  if (rawText.includes("nima qilyapti") || rawText.includes("qani") || rawText.includes("bandmi") || rawText.includes("uyqudami")) {
-    return getAbdullohCurrentStatus();
-  }
-
-  if (rawText.includes("abdulloh haqida") || rawText.includes("egasi haqida") || rawText.includes("abdulloh kim") || rawText.includes("malumot ber") && (rawText.includes("abdulloh") || rawText.includes("egasi"))) {
-    return `${getAbdullohCurrentStatus()} Egasi — Abdulloh Abdug'aniyev, 15 yoshda, Andijon viloyati Shahrixon tumanidan, 2-maktab 9-sinf o'quvchisi va KING SCHOOL'da Bobur Vahobov (UZMIND) shogirdi, Full-Stack dasturchi.`;
-  }
-
-  if (rawText.includes("kim yaratgan") || rawText.includes("yaratuvchisi") || rawText.includes("avtori") || rawText.includes("kim bu") || rawText === "kim") {
-    return "Abdulloh Abdug'aniyev";
-  }
-
-  // 3. O'zbekiston haqida ma'lumot
-  if (rawText.includes("o'zbekiston") || rawText.includes("ozbekiston") || rawText.includes("uzbekiston")) {
-    return "🇺🇿 O'zbekiston — Markaziy Osiyodagi boy tarix va madaniyatga ega go'zal davlat.\n• Poytaxti: Toshkent shahri\n• Aholisi: 37 milliondan ortiq\n• Tarixiy shaharlari: Samarqand, Buxoro, Xiva, Qo'qon, Andijon\n• Rasmiy tili: O'zbek tili\n• Pul birligi: O'zbek so'mi";
-  }
-
-  // 4. Clan kodi
-  if (rawText.includes("clan") || rawText.includes("klan") || rawText.includes("kod")) {
-    return `🎮 Clan kodi: ${getClanCode()}`;
-  }
-
-  // 5. Salomlashuvlar va hol-ahvol
-  if (rawText.includes("assalomu alaykum") || rawText.includes("salom alaykum") || rawText.includes("assalom")) {
-    return "Vaalaykum assalom! Yaxshimisiz? Kayfiyatlar qalay? Sizga qanday yordam bera olaman? 😊";
-  }
-  if (rawText.startsWith("salom") || rawText === "salom" || rawText.includes("salom")) {
-    return "Salom! Ishlar yaxshimi, charchamayapsizmi? Sizga qanday yordam bera olaman? ✨";
-  }
-  if (rawText.includes("qalesan") || rawText.includes("qalaysiz") || rawText.includes("qandaysiz") || rawText.includes("tuzukmisiz") || rawText.includes("yaxshimisiz")) {
-    return "Rahmat, juda yaxshiman! O'zingiz qandaysiz, ishlar joyidami? Marhamat, nima savolingiz bo'lsa bemalol yozing! 😊";
-  }
-  if (rawText.includes("nima gap") || rawText.includes("tinchmi")) {
-    return "Tinchlik, shukr! O'zingizda nima gaplar? Yangiliklar bormi? 😉";
-  }
-
-  // 6. Vaqt va sana
-  if (rawText.includes("soat") || rawText.includes("vaqt") || rawText.includes("sana") || rawText.includes("bugun qaysi kun")) {
-    return `Hozirgi aniq vaqt: ${uzTime.time}, Sana: ${uzTime.date} ⏰`;
-  }
-
-  // 7. Rahmat / Minnatdorchilik
-  if (rawText.includes("rahmat") || rawText.includes("tashakkur") || rawText.includes("spasibo")) {
-    return "Arzimaydi, xursand bo'ldim! Yana savollaringiz bo'lsa bemalol yozing! 🤝✨";
-  }
-
-  // 8. Ob-havo
-  if (weatherContext) {
-    return weatherContext;
-  }
-
-  // 9. Boshqa barcha savollar uchun do'stona va foydali javob
-  if (typeof contentPayload === "string" && contentPayload.length > 0) {
-    return `"${contentPayload}" bo'yicha savolingiz qabul qilindi. Men har qanday ma'lumotlar, bilimlar va vazifalarda sizga yordam berishga tayyorman! Savolingizni yanada aniqroq bersangiz, batafsil tushuntirib beraman. 😊`;
-  }
-
-  return "Sizga qanday yordam bera olaman? Bemalol savolingizni yozing! 😊";
+  return "Savolingizni eshitdim! Aniqroq yozing, sizga to'liq yordam berishga tayyorman 😊";
 }
 
 function startTypingIndicator(ctx, isBusiness = false) {
