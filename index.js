@@ -329,7 +329,8 @@ const ADMIN_HTML = `<!DOCTYPE html>
   </div>
 
   <script>
-    const tg = window.Telegram ? window.Telegram.WebApp : null;
+    // ✅ Telegram WebApp boshlash
+    var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
     if (tg) {
       try { tg.expand(); } catch(e) {}
       try { tg.ready(); } catch(e) {}
@@ -337,296 +338,206 @@ const ADMIN_HTML = `<!DOCTYPE html>
       try { if (tg.setBackgroundColor) tg.setBackgroundColor('#0f172a'); } catch(e) {}
     }
 
-    // 🔒 Admin kirish tekshiruvi (throw ishlatilmaydi - barcha JS ishlaydi)
-    function checkAccess() {
+    // ✅ Yordamchi funksiya
+    function el(id) { return document.getElementById(id); }
+
+    // ✅ Toast xabarnoma
+    function showToast(msg, isErr) {
       try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const isAdminQuery = urlParams.get('admin') === 'true' ||
-                             urlParams.get('admin_id') === '8255294502' ||
-                             urlParams.get('id') === '8255294502';
-
-        // Agar Telegram WebApp orqali ochilgan bo'lsa - faqat admin ko'radi
-        // (bot /admin buyrug'ini faqat adminga ko'rsatadi)
-        const isTgWebApp = tg && tg.initData && tg.initData.length > 0;
-
-        if (isTgWebApp) {
-          // Telegram WebApp orqali - ruxsat berildi (admin tugmasini faqat admin bosadi)
-          return true;
-        } else {
-          // Brauzer orqali kirishda - URL parametrni tekshir
-          return isAdminQuery;
-        }
-      } catch(e) {
-        return true; // xatolikda bloklamaydi
-      }
-    }
-
-    if (!checkAccess()) {
-      document.body.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#0f172a;color:#f8fafc;font-family:sans-serif;text-align:center;padding:20px">' +
-        '<div style="font-size:64px;margin-bottom:16px">🔒</div>' +
-        '<h1 style="font-size:20px;font-weight:800;color:#f43f5e;margin:0 0 10px">Kirish Taqiqlangan!</h1>' +
-        '<p style="font-size:13px;color:#94a3b8;max-width:280px;line-height:1.5">Ushbu sahifa faqat bot administratori (Abdulloh aka) uchun.</p>' +
-        '</div>';
-      // throw ishlatmaymiz - faqat body o'zgartiramiz
-    } else {
-
-    // ✅ BARCHA FUNKSIYALAR - FAQAT RUXSAT BO'LGAN FOYDALANUVCHILAR UCHUN
-
-    function showToast(message, isError) {
-      try {
-        const toast = document.getElementById('toast');
-        if (!toast) return;
-        toast.innerText = message;
-        toast.style.display = 'block';
-        toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 max-w-xs w-full border text-xs font-bold px-4 py-3 rounded-2xl shadow-2xl text-center z-50 ' +
-          (isError ? 'bg-rose-950 border-rose-500 text-rose-200' : 'bg-slate-900/95 border-indigo-500 text-white');
-        setTimeout(function() {
-          if (toast) { toast.style.display = 'none'; toast.classList.add('hidden'); }
-        }, 3500);
+        var t = el('toast'); if (!t) return;
+        t.innerText = msg;
+        t.style.display = 'block';
+        t.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 max-w-xs w-full border text-xs font-bold px-4 py-3 rounded-2xl shadow-2xl text-center z-50 ' +
+          (isErr ? 'bg-rose-950 border-rose-500 text-rose-200' : 'bg-slate-900/95 border-indigo-500 text-white');
+        setTimeout(function() { if (t) { t.style.display='none'; t.classList.add('hidden'); } }, 3500);
       } catch(e) {}
     }
 
-    function el(id) { return document.getElementById(id); }
-
-    async function loadAllData() {
-      try {
-        const res = await fetch('/api/status');
-        const data = await res.json();
-        if (data.clan_code && el('inputClanCode')) el('inputClanCode').value = data.clan_code;
-        if (data.clan_photo && el('inputClanPhoto')) el('inputClanPhoto').value = data.clan_photo;
-        if (data.uptime && el('stat-uptime')) el('stat-uptime').innerText = data.uptime;
-        if (data.bot_name && el('inputBotName')) el('inputBotName').value = data.bot_name;
-        if (data.bot_description && el('inputBotDesc')) el('inputBotDesc').value = data.bot_description;
-        if (data.admin_avatar) {
-          if (el('inputAdminAvatar')) el('inputAdminAvatar').value = data.admin_avatar;
-          if (el('adminProfileImg') && el('adminProfileFallback')) {
-            el('adminProfileImg').src = data.admin_avatar;
-            el('adminProfileImg').classList.remove('hidden');
-            el('adminProfileFallback').classList.add('hidden');
-          }
-        }
-        if (data.updated_at && el('clanLastUpdated')) {
-          el('clanLastUpdated').innerText = 'Yangilandi: ' + new Date(data.updated_at).toLocaleTimeString();
-        }
-      } catch(e) { console.warn('loadAllData error:', e.message); }
-    }
-
-    async function submitNewClanCode() {
-      const code = el('inputClanCode') ? el('inputClanCode').value.trim() : '';
-      const photo = el('inputClanPhoto') ? el('inputClanPhoto').value.trim() : '';
-      const btn = el('btnSaveClan');
-      if (!code) { showToast("Kodni bo'sh qoldirib bo'lmaydi!", true); return; }
-      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saqlanmoqda...'; }
-      try {
-        const res = await fetch('/api/clan-code', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clan_code: code, clan_photo: photo })
-        });
-        const data = await res.json();
-        if (data.success) {
-          showToast('✅ Clan kodi va rasmi saqlandi!');
-          if (el('clanLastUpdated')) el('clanLastUpdated').innerText = 'Hozirgina yangilandi!';
-        } else { showToast('Xatolik: ' + (data.message || 'Saqlanmadi'), true); }
-      } catch(e) { showToast('Server bilan aloqa xatoligi', true); }
-      finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check-circle"></i> <span>Klan Rasm va Kodini Saqlash</span>'; }
-      }
-    }
-
-    async function submitBotInfo() {
-      const name = el('inputBotName') ? el('inputBotName').value.trim() : '';
-      const desc = el('inputBotDesc') ? el('inputBotDesc').value.trim() : '';
-      const avatar = el('inputAdminAvatar') ? el('inputAdminAvatar').value.trim() : '';
-      const btn = el('btnSaveBotInfo');
-      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saqlanmoqda...'; }
-      try {
-        const res = await fetch('/api/bot-info', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: name, description: desc, admin_avatar: avatar })
-        });
-        const data = await res.json();
-        if (data.success) {
-          showToast('✅ Bot & Admin sozlamalari yangilandi!');
-          if (avatar && el('adminProfileImg') && el('adminProfileFallback')) {
-            el('adminProfileImg').src = avatar;
-            el('adminProfileImg').classList.remove('hidden');
-            el('adminProfileFallback').classList.add('hidden');
-          }
-        } else { showToast('Xatolik: ' + (data.message || 'Yangilanmadi'), true); }
-      } catch(e) { showToast('Server xatoligi', true); }
-      finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> <span>Bot & Admin Sozlamalarini Saqlash</span>'; }
-      }
-    }
-
-    function copyCode() {
-      const input = el('inputClanCode');
-      if (!input) return;
-      input.select();
-      try { document.execCommand('copy'); } catch(err) {
-        try { navigator.clipboard.writeText(input.value); } catch(e2) {}
-      }
-      showToast('Clan kodi nusxalandi! 📋');
-    }
-
-    async function triggerPing() {
-      const badge = el('pingBadge');
-      const start = Date.now();
-      try {
-        await fetch('/ping');
-        const ms = Date.now() - start;
-        if (badge) badge.innerText = ms + 'ms';
-        showToast('⚡️ Server javob tezligi: ' + ms + 'ms');
-      } catch(e) {
-        if (badge) badge.innerText = 'Offline';
-        showToast("Serverga ulanib bo'lmadi", true);
-      }
-    }
-
-    async function webDrawImage() {
-      const prompt = el('webImagePrompt') ? el('webImagePrompt').value.trim() : '';
-      const btn = el('btnWebDraw');
-      const resultDiv = el('webDrawResult');
-      if (!prompt) { showToast('Prompt yozing!', true); return; }
-      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Chizilmoqda...'; }
-      if (resultDiv) resultDiv.classList.add('hidden');
-      try {
-        const res = await fetch('/api/generate-image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: prompt })
-        });
-        const data = await res.json();
-        if (data.success && data.imageUrl && el('webGeneratedImg') && resultDiv) {
-          el('webGeneratedImg').src = data.imageUrl;
-          if (el('webDownloadBtn')) el('webDownloadBtn').href = data.imageUrl;
-          resultDiv.classList.remove('hidden');
-          showToast('🎨 Rasm muvaffaqiyatli chizildi!');
-        } else { showToast("Xatolik bo'ldi", true); }
-      } catch(e) { showToast('Aloqa xatoligi', true); }
-      finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-palette"></i> <span>Rasm Yaratish (Flux)</span>'; }
-      }
-    }
-
-    async function webSearchMusic() {
-      const q = el('webMusicQuery') ? el('webMusicQuery').value.trim() : '';
-      const btn = el('btnWebMusic');
-      const resultsDiv = el('webMusicResults');
-      if (!q) { showToast("Qidiruv so'zini yozing!", true); return; }
-      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; }
-      if (resultsDiv) resultsDiv.innerHTML = '';
-      try {
-        const res = await fetch('/api/search-music?q=' + encodeURIComponent(q));
-        const data = await res.json();
-        if (data.success && data.tracks && data.tracks.length > 0 && resultsDiv) {
-          data.tracks.forEach(function(t) {
-            const row = document.createElement('div');
-            row.className = 'bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between text-xs mt-2';
-            const safeTitle = String(t.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            const safeArtist = String(t.artist || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            const safeUrl = String(t.audioUrl || '');
-            row.innerHTML = '<div class="flex-1 truncate pr-2"><p class="font-bold text-slate-100 truncate">' + safeTitle + '</p><p class="text-[10px] text-slate-400 truncate">' + safeArtist + '</p></div>' +
-              '<button class="bg-indigo-600/80 text-white rounded-lg p-2 hover:bg-indigo-500 transition-colors" data-url="' + safeUrl.replace(/"/g,'&quot;') + '" data-title="' + safeTitle.replace(/"/g,'&quot;') + '" onclick="playWebMusic(this.dataset.url,this.dataset.title)"><i class="fas fa-play text-[10px]"></i></button>';
-            resultsDiv.appendChild(row);
-          });
-          showToast("🎵 Qo'shiqlar ro'yxati yuklandi!");
-        } else { showToast('Hech narsa topilmadi', true); }
-      } catch(e) { showToast('Aloqa xatoligi', true); }
-      finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-search"></i>'; }
-      }
-    }
-
-    function playWebMusic(url, title) {
-      try {
-        const player = el('webMusicPlayer');
-        const titleEl = el('webPlayingTitle');
-        const audio = el('webAudioElement');
-        if (!audio) return;
-        if (titleEl) titleEl.innerText = title || '';
-        audio.src = url || '';
-        if (player) player.classList.remove('hidden');
-        audio.play().catch(function(e) { console.warn('Audio play error:', e); });
-        showToast('▶️ ' + (title || '') + ' ijro etilmoqda');
-      } catch(e) { console.warn('playWebMusic error:', e); }
-    }
-
-    async function loadUsersList() {
-      const container = el('usersListContainer');
-      if (!container) return;
-      container.innerHTML = '<p class="text-center text-xs text-slate-500 py-4"><i class="fas fa-spinner fa-spin mr-1"></i> Foydalanuvchilar yuklanmoqda...</p>';
-      try {
-        const res = await fetch('/api/users');
-        const data = await res.json();
-        if (data.success && data.users && data.users.length > 0) {
-          container.innerHTML = '';
-          data.users.forEach(function(u) {
-            const name = ((u.first_name || '') + ' ' + (u.last_name || '')).trim() || 'Noma\'lum';
-            const date = u.last_seen ? new Date(u.last_seen).toLocaleString('uz-UZ', { hourCycle: 'h23' }) : '—';
-            const typeBadge = u.chat_type === 'private'
-              ? '<span class="text-[9px] bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded border border-sky-500/30 font-bold">Lichka</span>'
-              : '<span class="text-[9px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-500/30 font-bold">Guruh</span>';
-            const row = document.createElement('div');
-            row.className = 'bg-slate-900/60 p-3 rounded-2xl border border-slate-800 flex flex-col gap-1 text-xs mt-2';
-            row.innerHTML =
-              '<div class="flex items-center justify-between"><span class="font-extrabold text-slate-200">' + name + '</span>' + typeBadge + '</div>' +
-              '<div class="flex justify-between text-[10px] text-slate-400 mt-1"><span>ID: ' + (u.id || '—') + '</span><span>@<span class="text-indigo-400 font-bold">' + (u.username || 'Yo\'q') + '</span></span></div>' +
-              '<div class="text-[9px] text-slate-500 mt-0.5">So\'nggi faollik: ' + date + '</div>';
-            container.appendChild(row);
-          });
-        } else {
-          container.innerHTML = '<p class="text-center text-xs text-slate-500 py-4">Foydalanuvchilar topilmadi</p>';
-        }
-      } catch(e) {
-        container.innerHTML = '<p class="text-center text-xs text-rose-400 py-4">Yuklashda xatolik yuz berdi</p>';
-      }
-    }
-
+    // ✅ Tab almashtirish (GLOBAL - onclick uchun)
     function switchTab(tabId) {
       try {
         var contents = document.getElementsByClassName('tab-content');
-        for (var i = 0; i < contents.length; i++) {
-          contents[i].style.display = 'none';
-        }
+        for (var i = 0; i < contents.length; i++) contents[i].style.display = 'none';
         var buttons = document.getElementsByClassName('tab-btn');
         for (var j = 0; j < buttons.length; j++) {
-          buttons[j].classList.remove('active');
           buttons[j].style.color = '#94a3b8';
           buttons[j].style.background = '';
+          buttons[j].classList.remove('active');
         }
-        var activeView = document.getElementById('view-' + tabId);
-        var activeBtn = document.getElementById('tab-' + tabId);
-        if (activeView) activeView.style.display = 'block';
-        if (activeBtn) {
-          activeBtn.classList.add('active');
-          activeBtn.style.color = '#818cf8';
-          activeBtn.style.background = 'rgba(99,102,241,0.2)';
-        }
+        var view = el('view-' + tabId);
+        var btn  = el('tab-'  + tabId);
+        if (view) view.style.display = 'block';
+        if (btn)  { btn.style.color = '#818cf8'; btn.style.background = 'rgba(99,102,241,0.2)'; btn.classList.add('active'); }
         if (tabId === 'users') loadUsersList();
         try { if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); } catch(e) {}
-      } catch(e) { console.warn('switchTab error:', e.message); }
+      } catch(e) { console.warn('switchTab:', e.message); }
     }
 
-    function refreshLiveStats() {
-      loadAllData();
-      triggerPing();
-      loadUsersList();
-      showToast('Statistika yangilandi 🔄');
+    // ✅ Ping tekshirish (GLOBAL)
+    function triggerPing() {
+      var badge = el('pingBadge');
+      var start = Date.now();
+      fetch('/ping').then(function() {
+        var ms = Date.now() - start;
+        if (badge) badge.innerText = ms + 'ms';
+        showToast('⚡️ Server: ' + ms + 'ms');
+      }).catch(function() {
+        if (badge) badge.innerText = 'Offline';
+        showToast("Serverga ulanib bo'lmadi", true);
+      });
     }
 
-    // Sahifa yuklanganda avtomatik ishga tushadi
-    window.addEventListener('DOMContentLoaded', function() {
+    // ✅ Statistikalarni yuklash (GLOBAL)
+    function loadAllData() {
+      fetch('/api/status').then(function(r) { return r.json(); }).then(function(d) {
+        if (d.clan_code && el('inputClanCode')) el('inputClanCode').value = d.clan_code;
+        if (d.clan_photo && el('inputClanPhoto')) el('inputClanPhoto').value = d.clan_photo;
+        if (d.uptime && el('stat-uptime')) el('stat-uptime').innerText = d.uptime;
+        if (d.bot_name && el('inputBotName')) el('inputBotName').value = d.bot_name;
+        if (d.bot_description && el('inputBotDesc')) el('inputBotDesc').value = d.bot_description;
+        if (d.admin_avatar) {
+          if (el('inputAdminAvatar')) el('inputAdminAvatar').value = d.admin_avatar;
+          if (el('adminProfileImg')) { el('adminProfileImg').src = d.admin_avatar; el('adminProfileImg').classList.remove('hidden'); }
+          if (el('adminProfileFallback')) el('adminProfileFallback').classList.add('hidden');
+        }
+        if (d.updated_at && el('clanLastUpdated'))
+          el('clanLastUpdated').innerText = 'Yangilandi: ' + new Date(d.updated_at).toLocaleTimeString();
+      }).catch(function(e) { console.warn('loadAllData:', e.message); });
+    }
+
+    // ✅ Foydalanuvchilar ro'yxati (GLOBAL)
+    function loadUsersList() {
+      var c = el('usersListContainer'); if (!c) return;
+      c.innerHTML = '<p class="text-center text-xs text-slate-500 py-4"><i class="fas fa-spinner fa-spin mr-1"></i> Yuklanmoqda...</p>';
+      fetch('/api/users').then(function(r) { return r.json(); }).then(function(d) {
+        if (d.success && d.users && d.users.length > 0) {
+          c.innerHTML = '';
+          d.users.forEach(function(u) {
+            var name = ((u.first_name||'') + ' ' + (u.last_name||'')).trim() || "Noma'lum";
+            var date = u.last_seen ? new Date(u.last_seen).toLocaleString('uz-UZ',{hourCycle:'h23'}) : '—';
+            var badge = u.chat_type === 'private'
+              ? '<span class="text-[9px] bg-sky-500/20 text-sky-400 px-1.5 py-0.5 rounded border border-sky-500/30 font-bold">Lichka</span>'
+              : '<span class="text-[9px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-500/30 font-bold">Guruh</span>';
+            var row = document.createElement('div');
+            row.className = 'bg-slate-900/60 p-3 rounded-2xl border border-slate-800 flex flex-col gap-1 text-xs mt-2';
+            row.innerHTML = '<div class="flex items-center justify-between"><span class="font-extrabold text-slate-200">' + name + '</span>' + badge + '</div>' +
+              '<div class="flex justify-between text-[10px] text-slate-400 mt-1"><span>ID: '+(u.id||'—')+'</span><span>@<span class="text-indigo-400 font-bold">'+(u.username||"Yo'q")+'</span></span></div>' +
+              '<div class="text-[9px] text-slate-500 mt-0.5">So\'nggi faollik: ' + date + '</div>';
+            c.appendChild(row);
+          });
+        } else { c.innerHTML = '<p class="text-center text-xs text-slate-500 py-4">Foydalanuvchilar topilmadi</p>'; }
+      }).catch(function() { c.innerHTML = '<p class="text-center text-xs text-rose-400 py-4">Yuklashda xatolik</p>'; });
+    }
+
+    // ✅ Clan kodi saqlash (GLOBAL)
+    function submitNewClanCode() {
+      var code = el('inputClanCode') ? el('inputClanCode').value.trim() : '';
+      var photo = el('inputClanPhoto') ? el('inputClanPhoto').value.trim() : '';
+      var btn = el('btnSaveClan');
+      if (!code) { showToast("Kodni bo'sh qoldirib bo'lmaydi!", true); return; }
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saqlanmoqda...'; }
+      fetch('/api/clan-code', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({clan_code:code,clan_photo:photo}) })
+        .then(function(r){return r.json();}).then(function(d) {
+          if (d.success) { showToast('✅ Saqlandi!'); if (el('clanLastUpdated')) el('clanLastUpdated').innerText = 'Hozirgina yangilandi!'; }
+          else showToast('Xatolik: '+(d.message||'Saqlanmadi'), true);
+        }).catch(function() { showToast('Server bilan aloqa xatoligi', true); })
+        .finally(function() { if (btn) { btn.disabled=false; btn.innerHTML='<i class="fas fa-check-circle"></i> <span>Klan Rasm va Kodini Saqlash</span>'; } });
+    }
+
+    // ✅ Bot sozlamalarini saqlash (GLOBAL)
+    function submitBotInfo() {
+      var name = el('inputBotName') ? el('inputBotName').value.trim() : '';
+      var desc = el('inputBotDesc') ? el('inputBotDesc').value.trim() : '';
+      var avatar = el('inputAdminAvatar') ? el('inputAdminAvatar').value.trim() : '';
+      var btn = el('btnSaveBotInfo');
+      if (btn) { btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Saqlanmoqda...'; }
+      fetch('/api/bot-info', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:name,description:desc,admin_avatar:avatar}) })
+        .then(function(r){return r.json();}).then(function(d) {
+          if (d.success) {
+            showToast('✅ Bot & Admin yangilandi!');
+            if (avatar && el('adminProfileImg')) { el('adminProfileImg').src=avatar; el('adminProfileImg').classList.remove('hidden'); }
+            if (avatar && el('adminProfileFallback')) el('adminProfileFallback').classList.add('hidden');
+          } else showToast('Xatolik: '+(d.message||'Yangilanmadi'), true);
+        }).catch(function() { showToast('Server xatoligi', true); })
+        .finally(function() { if (btn) { btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i> <span>Bot & Admin Sozlamalarini Saqlash</span>'; } });
+    }
+
+    // ✅ Kodni nusxalash (GLOBAL)
+    function copyCode() {
+      var input = el('inputClanCode'); if (!input) return;
+      input.select();
+      try { document.execCommand('copy'); } catch(e) { try { navigator.clipboard.writeText(input.value); } catch(e2) {} }
+      showToast('Clan kodi nusxalandi! 📋');
+    }
+
+    // ✅ AI Rasm yaratish (GLOBAL)
+    function webDrawImage() {
+      var prompt = el('webImagePrompt') ? el('webImagePrompt').value.trim() : '';
+      var btn = el('btnWebDraw'); var resultDiv = el('webDrawResult');
+      if (!prompt) { showToast('Prompt yozing!', true); return; }
+      if (btn) { btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Chizilmoqda...'; }
+      if (resultDiv) resultDiv.classList.add('hidden');
+      fetch('/api/generate-image', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:prompt})})
+        .then(function(r){return r.json();}).then(function(d) {
+          if (d.success && d.imageUrl) {
+            if (el('webGeneratedImg')) el('webGeneratedImg').src = d.imageUrl;
+            if (el('webDownloadBtn')) el('webDownloadBtn').href = d.imageUrl;
+            if (resultDiv) resultDiv.classList.remove('hidden');
+            showToast('🎨 Rasm chizildi!');
+          } else showToast("Xatolik bo'ldi", true);
+        }).catch(function() { showToast('Aloqa xatoligi', true); })
+        .finally(function() { if (btn) { btn.disabled=false; btn.innerHTML='<i class="fas fa-palette"></i> <span>Rasm Yaratish (Flux)</span>'; } });
+    }
+
+    // ✅ Musiqa qidirish (GLOBAL)
+    function webSearchMusic() {
+      var q = el('webMusicQuery') ? el('webMusicQuery').value.trim() : '';
+      var btn = el('btnWebMusic'); var rd = el('webMusicResults');
+      if (!q) { showToast("Qidiruv so'zini yozing!", true); return; }
+      if (btn) { btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>'; }
+      if (rd) rd.innerHTML = '';
+      fetch('/api/search-music?q=' + encodeURIComponent(q))
+        .then(function(r){return r.json();}).then(function(d) {
+          if (d.success && d.tracks && d.tracks.length > 0 && rd) {
+            d.tracks.forEach(function(t) {
+              var row = document.createElement('div');
+              row.className = 'bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between text-xs mt-2';
+              var st = String(t.title||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+              var sa = String(t.artist||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+              var su = String(t.audioUrl||'').replace(/"/g,'&quot;');
+              row.innerHTML = '<div class="flex-1 truncate pr-2"><p class="font-bold text-slate-100 truncate">' + st + '</p><p class="text-[10px] text-slate-400 truncate">' + sa + '</p></div>' +
+                '<button class="bg-indigo-600/80 text-white rounded-lg p-2 hover:bg-indigo-500" data-url="' + su + '" data-title="' + st.replace(/"/g,'&quot;') + '" onclick="playWebMusic(this.dataset.url,this.dataset.title)"><i class="fas fa-play text-[10px]"></i></button>';
+              rd.appendChild(row);
+            });
+            showToast("🎵 Qo'shiqlar yuklandi!");
+          } else showToast('Hech narsa topilmadi', true);
+        }).catch(function() { showToast('Aloqa xatoligi', true); })
+        .finally(function() { if (btn) { btn.disabled=false; btn.innerHTML='<i class="fas fa-search"></i>'; } });
+    }
+
+    // ✅ Musiqa ijro etish (GLOBAL)
+    function playWebMusic(url, title) {
+      try {
+        var player = el('webMusicPlayer'); var te = el('webPlayingTitle'); var audio = el('webAudioElement');
+        if (!audio) return;
+        if (te) te.innerText = title||'';
+        audio.src = url||'';
+        if (player) player.classList.remove('hidden');
+        audio.play().catch(function(e){console.warn('Audio:',e);});
+        showToast('▶️ ' + (title||'') + ' ijro etilmoqda');
+      } catch(e) {}
+    }
+
+    // ✅ Barchasini yangilash (GLOBAL)
+    function refreshLiveStats() { loadAllData(); triggerPing(); loadUsersList(); showToast('Statistika yangilandi 🔄'); }
+
+    // ✅ Sahifa yuklanganda avtomatik ishga tushadi
+    window.onload = function() {
       loadAllData();
       triggerPing();
       setInterval(loadAllData, 15000);
       setInterval(triggerPing, 30000);
-    });
-
-    } // end if checkAccess
-  
+    };
   </script>
 </body>
 </html>`;
