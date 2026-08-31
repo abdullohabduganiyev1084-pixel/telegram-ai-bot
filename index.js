@@ -808,9 +808,8 @@ const bot = new Bot(botToken);
 const ai = new GoogleGenAI({ apiKey: geminiApiKey });
 
 const AI_MODELS = [
-  "gemini-3.6-flash",
-  "gemini-3.5-flash",
-  "gemini-3.5-flash-lite",
+  "gemini-3.6-flash",   // Asosiy — eng tez
+  "gemini-3.5-flash",   // Zaxira
 ];
 
 const FUN_EMOJIS = ["🔥", "⚡️", "😎", "🚀", "✨", "🤝", "🙌", "⚽️", "🎮", "💡", "🎯", "👏", "🏆", "🎧", "🎨"];
@@ -1320,16 +1319,29 @@ function getChatHistory(chatId) {
   return chatMemory.get(chatId);
 }
 
-function addMessageToMemory(chatId, role, text) {
-  if (!chatId) return;
+function addMessageToMemory(chatId, role, text, senderName = null) {
+  if (!chatId || !text) return;
   const history = getChatHistory(chatId);
-  history.push({ role, parts: [{ text }] });
-  if (history.length > 12) {
+  const entry = { role, parts: [{ text }] };
+  if (senderName && role === "user") {
+    entry.parts[0].text = `[${senderName}]: ${text}`;
+  }
+  history.push(entry);
+  // 30 ta xabar eslab qoladi (15 juft)
+  if (history.length > 30) {
     history.splice(0, 2);
   }
 }
 
-async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin = false, queryTextForWeather = "", chatId = null, senderId = null) {
+function getMemorySummary(chatId) {
+  if (!chatId) return "";
+  const history = getChatHistory(chatId);
+  if (history.length === 0) return "";
+  // Oxirgi 6 ta xabarni qisqacha ko'rsatish uchun
+  return history.slice(-6).map(m => `${m.role === "user" ? "Foydalanuvchi" : "Bot"}: ${m.parts[0].text.substring(0, 100)}`).join("\n");
+}
+
+async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin = false, queryTextForWeather = "", chatId = null, senderId = null, senderName = null) {
   let lastError = null;
   let weatherContext = "";
 
@@ -1346,7 +1358,7 @@ async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin =
         users = JSON.parse(fs.readFileSync(USERS_FILE, "utf-8"));
       }
       if (users[senderId] && !users[senderId].introduced) {
-        introPrompt = "\nMUHIM QOIDA: Bu foydalanuvchi bilan birinchi marta muloqot qilishingiz. O'zingizni juda muloyimlik bilan tanishtiring (Masalan: 'Assalomu alaykum! Men Abdulloh Abdug'aniyev tomonidan yaratilgan sun'iy intellekt yordamchisiman...'). Keyingi xabarlarda o'zingizni boshqa tanishtirmang.\n";
+        introPrompt = "\nMUHIM QOIDA: Bu foydalanuvchi bilan birinchi marta muloqot qilishingiz. O'zingizni muloyimlik bilan tanishtiring. Keyingi xabarlarda boshqa tanishtirmang.\n";
         users[senderId].introduced = true;
         fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), "utf-8");
       }
@@ -1359,13 +1371,13 @@ async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin =
   let contents = [];
 
   if (chatId && typeof contentPayload === "string") {
-    addMessageToMemory(chatId, "user", contentPayload);
+    addMessageToMemory(chatId, "user", contentPayload, senderName);
     contents = [...getChatHistory(chatId)];
   } else {
     contents = Array.isArray(contentPayload) ? contentPayload : [contentPayload];
   }
 
-  // Gemini SDK orqali javob olamiz
+  // Gemini SDK orqali javob olamiz — tez va aniq
   for (const modelName of AI_MODELS) {
     try {
       const response = await ai.models.generateContent({
@@ -1373,8 +1385,10 @@ async function generateAiResponse(contentPayload, isGroup = false, userIsAdmin =
         contents: contents,
         config: {
           systemInstruction: prompt,
-          maxOutputTokens: 1500,
-          temperature: 0.7,
+          maxOutputTokens: 800,   // Qisqaroq = tezroq
+          temperature: 0.4,       // Pastroq = aniqroq
+          topP: 0.9,
+          topK: 40,
         },
       });
 
@@ -2154,6 +2168,92 @@ bot.on(["message:video", "message:video_note"], async (ctx) => {
   }
 });
 
+// ==========================================
+// OVOZLI XABAR HANDLERI (Voice Message)
+// ==========================================
+bot.on("message:voice", async (ctx) => {
+  trackUser(ctx);
+  const isGroup = ctx.chat.type === "group" || ctx.chat.type === "supergroup";
+  const botUsername = ctx.me?.username?.toLowerCase() || "mrx_uzbot";
+  const senderName = ctx.from?.first_name || "Foydalanuvchi";
+  const userIsAdmin = isAdmin(ctx);
+  const replyTo = ctx.message?.reply_to_message;
+
+  // Guruhda: faqat bot mention qilinsa yoki botga reply bo'lsa
+  if (isGroup) {
+    const isMentioned = (ctx.message?.caption || "").toLowerCase().includes(`@${botUsername}`);
+    const isReplyToBot = replyTo?.from?.id === ctx.me?.id;
+    if (!isMentioned && !isReplyToBot) return;
+  }
+
+  const stopTyping = startTypingIndicator(ctx, false);
+
+  try {
+    const voice = ctx.message.voice;
+    console.log(`[Ovozli xabar -> ${senderName}] davomiyligi: ${voice.duration}s`);
+
+    // Ovozli faylni yuklab olish
+    const file = await ctx.api.getFile(voice.file_id);
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const fileUrl = `https://api.telegram.org/file/bot${botToken}/${file.file_path}`;
+    const audioRes = await fetch(fileUrl);
+    if (!audioRes.ok) throw new Error("Ovozli fayl yuklanmadi");
+    const audioBuffer = await audioRes.arrayBuffer();
+    const audioBase64 = Buffer.from(audioBuffer).toString("base64");
+
+    // Gemini bilan ovozni tahlil qilib javob beramiz
+    const response = await ai.models.generateContent({
+      model: "gemini-3.6-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              inlineData: {
+                data: audioBase64,
+                mimeType: voice.mime_type || "audio/ogg",
+              },
+            },
+            {
+              text: `Bu ovozli xabarni O'zbek tilida yoki qaysi tilda gapirgan bo'lsa o'sha tilda tahlil qil. Avval qisqacha nima deyilganini yoz (masalan: "Ovozda: ..."), keyin unga mos aniq va insoniy javob ber. Takrorlamagan holda bitta yaxlit javob qaytar.`,
+            },
+          ],
+        },
+      ],
+      config: {
+        systemInstruction: getSystemPrompt(isGroup, userIsAdmin),
+        maxOutputTokens: 800,
+        temperature: 0.4,
+      },
+    });
+
+    if (response && response.text) {
+      const aiAnswer = response.text;
+      // Xotirada saqlash
+      addMessageToMemory(ctx.chat.id, "user", `[Ovozli xabar - ${voice.duration}s]`);
+      addMessageToMemory(ctx.chat.id, "model", aiAnswer);
+
+      await ctx.reply(`🎤 ${aiAnswer}`, {
+        reply_parameters: {
+          message_id: ctx.message.message_id,
+          allow_sending_without_reply: true,
+        },
+      });
+    } else {
+      await ctx.reply("Ovozli xabarni anglab bo'lmadi. Iltimos, qaytadan yuboring.", {
+        reply_parameters: { message_id: ctx.message.message_id, allow_sending_without_reply: true },
+      });
+    }
+  } catch (error) {
+    console.error("[Voice Handler Error]:", error?.message || error);
+    await ctx.reply("Ovozli xabarni qayta ishlashda xatolik yuz berdi 😔", {
+      reply_parameters: { message_id: ctx.message.message_id, allow_sending_without_reply: true },
+    }).catch(() => {});
+  } finally {
+    stopTyping();
+  }
+});
+
 // Rasm (Photo) kelganda
 bot.on("message:photo", async (ctx) => {
   trackUser(ctx);
@@ -2456,7 +2556,7 @@ bot.on("message:text", async (ctx) => {
       promptInput = messageText;
     }
 
-    const aiAnswer = await generateAiResponse(promptInput, isGroup, userIsAdmin, messageText, ctx.chat.id, ctx.from?.id);
+    const aiAnswer = await generateAiResponse(promptInput, isGroup, userIsAdmin, messageText, ctx.chat.id, ctx.from?.id, senderName);
 
     await ctx.reply(aiAnswer, {
       reply_parameters: {
